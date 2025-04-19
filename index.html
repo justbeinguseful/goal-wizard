@@ -4,103 +4,161 @@
   <meta charset="UTF-8">
   <title>Goal Wizard + Airtable</title>
   <style>
-    /* same styling as before… */
+    /* Basic layout & reset */
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: sans-serif; background: transparent; }
+    #wizard { max-width: 400px; margin: 20px auto; padding: 0 10px; }
+
+    /* Step visibility */
+    .step { display: none; }
+    .step.active { display: block; }
+
+    /* Typography */
+    h2 {
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+      text-align: center;
+    }
+
+    /* Inputs */
+    input {
+      width: 100%;
+      padding: 0.75em;
+      font-size: 1em;
+      margin-bottom: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* Buttons container */
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 1em;
+    }
+
+    /* Buttons styling */
+    button {
+      flex: 1;
+      padding: 0.75em;
+      font-size: 1em;
+      background: #e53e3e;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
-
-<div id="wizard">
-  <!-- Step 1 -->
-  <div class="step active" data-step="1">
-    <h2>Enter your goal</h2>
-    <input type="text" id="goal" placeholder="e.g. Run a 5K in under 25min">
-    <div class="buttons"><button id="next1">Next ➔</button></div>
-  </div>
-  <!-- Step 2 -->
-  <div class="step" data-step="2">
-    <h2>Pick a deadline</h2>
-    <input type="date" id="deadline">
-    <div class="buttons">
-      <button id="prev2">◀ Back</button>
-      <button id="next2">Next ➔</button>
+  <div id="wizard">
+    <!-- Step 1 -->
+    <div class="step active" data-step="1">
+      <h2>Enter your goal</h2>
+      <input type="text" id="goal" placeholder="e.g. Run a 5K in under 25min">
+      <div class="buttons">
+        <button id="next1">Next ➔</button>
+      </div>
+    </div>
+    
+    <!-- Step 2 -->
+    <div class="step" data-step="2">
+      <h2>Pick a deadline</h2>
+      <input type="date" id="deadline">
+      <div class="buttons">
+        <button id="prev2">◀ Back</button>
+        <button id="next2">Next ➔</button>
+      </div>
+    </div>
+    
+    <!-- Step 3 -->
+    <div class="step" data-step="3">
+      <h2>Set your stake ($)</h2>
+      <input type="number" id="stake" placeholder="e.g. 100">
+      <div class="buttons">
+        <button id="prev3">◀ Back</button>
+        <button id="next3">Next ➔</button>
+      </div>
+    </div>
+    
+    <!-- Step 4 -->
+    <div class="step" data-step="4">
+      <h2>Supervisor’s Email</h2>
+      <input type="email" id="supervisor" placeholder="supervisor@example.com">
+      <div class="buttons">
+        <button id="prev4">◀ Back</button>
+        <button id="next4">Next ➔</button>
+      </div>
+    </div>
+    
+    <!-- Step 5: Review & Submit -->
+    <div class="step" data-step="5">
+      <h2>Review & Submit</h2>
+      <p style="text-align:center;">
+        <strong>Goal:</strong> <span id="review-goal"></span><br>
+        <strong>Deadline:</strong> <span id="review-deadline"></span><br>
+        <strong>Stake:</strong> $<span id="review-stake"></span><br>
+        <strong>Supervisor:</strong> <span id="review-supervisor"></span>
+      </p>
+      <div class="buttons">
+        <button id="prev5">◀ Back</button>
+        <button id="submit">Submit ✅</button>
+      </div>
     </div>
   </div>
-  <!-- Step 3 -->
-  <div class="step" data-step="3">
-    <h2>Set your stake ($)</h2>
-    <input type="number" id="stake" placeholder="e.g. 100">
-    <div class="buttons">
-      <button id="prev3">◀ Back</button>
-      <button id="next3">Next ➔</button>
-    </div>
-  </div>
-  <!-- Step 4 -->
-  <div class="step" data-step="4">
-    <h2>Supervisor’s Email</h2>
-    <input type="email" id="supervisor" placeholder="supervisor@example.com">
-    <div class="buttons">
-      <button id="prev4">◀ Back</button>
-      <button id="next4">Next ➔</button>
-    </div>
-  </div>
-  <!-- Step 5: Review & Submit -->
-  <div class="step" data-step="5">
-    <h2>Review & Submit</h2>
-    <p style="text-align:center;">
-      <strong>Goal:</strong> <span id="review-goal"></span><br>
-      <strong>Deadline:</strong> <span id="review-deadline"></span><br>
-      <strong>Stake:</strong> $<span id="review-stake"></span><br>
-      <strong>Supervisor:</strong> <span id="review-supervisor"></span>
-    </p>
-    <div class="buttons">
-      <button id="prev5">◀ Back</button>
-      <button id="submit">Submit ✅</button>
-    </div>
-  </div>
-</div>
 
-<script>
-  // step navigation & populateReview (same as before)…
+  <script>
+    // Navigation logic
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
+      if (n === 5) populateReview();
+    }
+    document.getElementById('next1').onclick = () => showStep(2);
+    document.getElementById('prev2').onclick = () => showStep(1);
+    document.getElementById('next2').onclick = () => showStep(3);
+    document.getElementById('prev3').onclick = () => showStep(2);
+    document.getElementById('next3').onclick = () => showStep(4);
+    document.getElementById('prev4').onclick = () => showStep(3);
+    document.getElementById('next4').onclick = () => showStep(5);
+    document.getElementById('prev5').onclick = () => showStep(4);
 
-  // Airtable write (no Stripe!)
-  const AIRTABLE_BASE  = 'appXTQ0JUx74XJmAA';
-  const AIRTABLE_TABLE = 'tblyuW8pf6ZkFRfte';
-  const AIRTABLE_KEY   = 'patgTL9GHvIxoQPP7.12530f311f38265eed09b5f8d9a9ed1657c7c2cc9ea5f9e923269665ae68bfa5';
+    // Fill review step
+    function populateReview() {
+      document.getElementById('review-goal').textContent = document.getElementById('goal').value;
+      document.getElementById('review-deadline').textContent = document.getElementById('deadline').value;
+      document.getElementById('review-stake').textContent = document.getElementById('stake').value;
+      document.getElementById('review-supervisor').textContent = document.getElementById('supervisor').value;
+    }
 
-  submit.onclick = async () => {
-    const payload = {
-      fields: {
-        "Goal":            goal.value,
-        "Deadline Date":   deadline.value,
-        "Money Stake USD": parseFloat(stake.value),
-        "Referee Email":   supervisor.value
+    // Airtable submission
+    const submitBtn = document.getElementById('submit');
+    submitBtn.onclick = async () => {
+      try {
+        const resp = await fetch('/.netlify/functions/submit-goal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            goal: document.getElementById('goal').value,
+            deadline: document.getElementById('deadline').value,
+            stake: document.getElementById('stake').value,
+            supervisor: document.getElementById('supervisor').value
+          })
+        });
+        if (!resp.ok) throw new Error('Network response was not ok');
+        alert('🎉 Saved! We’ll follow up via email.');
+        showStep(1);
+        ['goal','deadline','stake','supervisor'].forEach(id => document.getElementById(id).value = '');
+      } catch (err) {
+        console.error(err);
+        alert('⚠️ Error: ' + err.message);
       }
     };
-
-    try {
-      const resp = await fetch(
-        `/.netlify/functions/submit-goal`,  // if you’re using the Netlify Function
-        {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({
-            goal: goal.value,
-            deadline: deadline.value,
-            stake: stake.value,
-            supervisor: supervisor.value
-          })
-        }
-      );
-      if (!resp.ok) throw new Error('Network response was not ok');
-      alert('🎉 Saved! We’ll follow up via email.');
-      showStep(1);
-      [goal,deadline,stake,supervisor].forEach(f=>f.value='');
-    } catch (err) {
-      console.error(err);
-      alert('⚠️ Error: '+err.message);
-    }
-  };
-</script>
-
+  </script>
 </body>
 </html>

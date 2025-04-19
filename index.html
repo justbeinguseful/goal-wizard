@@ -2,37 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Goal Wizard</title>
-  <script src="https://js.stripe.com/v3/"></script>
+  <title>Goal Wizard + Airtable</title>
   <style>
-    /* —— Basic Reset & Centering —— */
-    * { box-sizing: border-box; }
-    body { margin:0; font-family:sans-serif; }
-    #wizard { max-width:400px; margin:20px auto; padding:0 10px; }
-
-    /* —— Steps —— */
-    .step { display: none; }
-    .step.active { display: block; }
-
-    /* —— Inputs & Buttons —— */
-    h2 { font-size:1.2em; margin-bottom:.5em; text-align:center; }
-    input { width:100%; padding:.75em; font-size:1em; margin-bottom:1em; }
-    .buttons { display:flex; justify-content:space-between; gap:10px; }
-    button {
-      flex:1;
-      padding:.75em;
-      font-size:1em;
-      background:#e53e3e;
-      color:#fff;
-      border:none;
-      cursor:pointer;
-      border-radius:4px;
-    }
-    button[disabled] { opacity:.6; cursor:not-allowed; }
-
-    /* —— Stripe Element —— */
-    #card-element { padding:12px; border:1px solid #ccc; border-radius:4px; }
-    #card-errors { color:red; margin-top:.5em; font-size:.9em; }
+    /* same styling as before… */
   </style>
 </head>
 <body>
@@ -42,11 +14,8 @@
   <div class="step active" data-step="1">
     <h2>Enter your goal</h2>
     <input type="text" id="goal" placeholder="e.g. Run a 5K in under 25min">
-    <div class="buttons">
-      <button id="next1">Next ➔</button>
-    </div>
+    <div class="buttons"><button id="next1">Next ➔</button></div>
   </div>
-
   <!-- Step 2 -->
   <div class="step" data-step="2">
     <h2>Pick a deadline</h2>
@@ -56,7 +25,6 @@
       <button id="next2">Next ➔</button>
     </div>
   </div>
-
   <!-- Step 3 -->
   <div class="step" data-step="3">
     <h2>Set your stake ($)</h2>
@@ -66,7 +34,6 @@
       <button id="next3">Next ➔</button>
     </div>
   </div>
-
   <!-- Step 4 -->
   <div class="step" data-step="4">
     <h2>Supervisor’s Email</h2>
@@ -76,77 +43,64 @@
       <button id="next4">Next ➔</button>
     </div>
   </div>
-
-  <!-- Step 5 -->
+  <!-- Step 5: Review & Submit -->
   <div class="step" data-step="5">
-    <h2>Save your card (no charge now)</h2>
-    <form id="payment-form">
-      <div id="card-element"></div>
-      <div id="card-errors" role="alert"></div>
-      <div class="buttons">
-        <button id="prev5" type="button">◀ Back</button>
-        <button id="submit">Save Card</button>
-      </div>
-    </form>
+    <h2>Review & Submit</h2>
+    <p style="text-align:center;">
+      <strong>Goal:</strong> <span id="review-goal"></span><br>
+      <strong>Deadline:</strong> <span id="review-deadline"></span><br>
+      <strong>Stake:</strong> $<span id="review-stake"></span><br>
+      <strong>Supervisor:</strong> <span id="review-supervisor"></span>
+    </p>
+    <div class="buttons">
+      <button id="prev5">◀ Back</button>
+      <button id="submit">Submit ✅</button>
+    </div>
   </div>
 </div>
 
 <script>
-  // —— STEP NAVIGATION —— 
-  function showStep(n) {
-    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-    document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
-  }
-  document.getElementById('next1').onclick = () => showStep(2);
-  document.getElementById('prev2').onclick = () => showStep(1);
-  document.getElementById('next2').onclick = () => showStep(3);
-  document.getElementById('prev3').onclick = () => showStep(2);
-  document.getElementById('next3').onclick = () => showStep(4);
-  document.getElementById('prev4').onclick = () => showStep(3);
-  document.getElementById('next4').onclick = () => showStep(5);
-  document.getElementById('prev5').onclick = () => showStep(4);
+  // step navigation & populateReview (same as before)…
 
-  // —— STRIPE SETUPINTENT LOGIC —— 
-  // 1) Replace with your own publishable key:
-  const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY');
-  const elements = stripe.elements();
-  const card = elements.create('card');
-  card.mount('#card-element');
-  card.on('change', e => {
-    document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
-  });
+  // Airtable write (no Stripe!)
+  const AIRTABLE_BASE  = 'appXTQ0JUx74XJmAA';
+  const AIRTABLE_TABLE = 'tblyuW8pf6ZkFRfte';
+  const AIRTABLE_KEY   = 'patgTL9GHvIxoQPP7.12530f311f38265eed09b5f8d9a9ed1657c7c2cc9ea5f9e923269665ae68bfa5';
 
-  // 2) On form submit → call your backend to create a SetupIntent:
-  document.getElementById('payment-form').addEventListener('submit', ev => {
-    ev.preventDefault();
-    // collect all values
+  submit.onclick = async () => {
     const payload = {
-      goal: document.getElementById('goal').value,
-      deadline: document.getElementById('deadline').value,
-      stake: document.getElementById('stake').value,
-      supervisor: document.getElementById('supervisor').value,
-    };
-    fetch('https://YOUR_BACKEND_DOMAIN/create-setup-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(data => {
-      return stripe.confirmCardSetup(data.clientSecret, {
-        payment_method: { card }
-      });
-    })
-    .then(result => {
-      if (result.error) {
-        document.getElementById('card-errors').textContent = result.error.message;
-      } else {
-        alert('✅ Card saved! We’ll only charge if you miss your goal.');
-        // Optional: POST result.setupIntent.payment_method back to your backend
+      fields: {
+        "Goal":            goal.value,
+        "Deadline Date":   deadline.value,
+        "Money Stake USD": parseFloat(stake.value),
+        "Referee Email":   supervisor.value
       }
-    })
-    .catch(err => {
-      document.getElementById('card-errors').textContent = err.message;
-    });
-  });
+    };
+
+    try {
+      const resp = await fetch(
+        `/.netlify/functions/submit-goal`,  // if you’re using the Netlify Function
+        {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            goal: goal.value,
+            deadline: deadline.value,
+            stake: stake.value,
+            supervisor: supervisor.value
+          })
+        }
+      );
+      if (!resp.ok) throw new Error('Network response was not ok');
+      alert('🎉 Saved! We’ll follow up via email.');
+      showStep(1);
+      [goal,deadline,stake,supervisor].forEach(f=>f.value='');
+    } catch (err) {
+      console.error(err);
+      alert('⚠️ Error: '+err.message);
+    }
+  };
 </script>
+
+</body>
+</html>

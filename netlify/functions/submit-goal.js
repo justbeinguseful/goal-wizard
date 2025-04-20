@@ -1,85 +1,48 @@
-// netlify/functions/submit-goal.js
+// Native fetch is available in Node 22 but Netlify still needs it declared in pkg.json
+const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
 
-// Airtable API
-const fetch = require('node-fetch');
 const AIRTABLE_BASE  = 'appXTQ0JUx74XJmAA';
 const AIRTABLE_TABLE = 'tblyuW8pf6ZkFRfte';
 const AIRTABLE_KEY   = process.env.AIRTABLE_KEY;
 
 exports.handler = async (event) => {
-  // 1) CORS preflight
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      }
-    };
+    return { statusCode: 204, headers: cors() };
   }
-
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Method Not Allowed' })
-    };
-  }
-
-  let { goal, deadline, stake, supervisorEmail, userEmail } = {};
-  try {
-    ({ goal, deadline, stake, supervisorEmail, userEmail } = JSON.parse(event.body));
-  } catch (err) {
-    return {
-      statusCode: 400,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'Invalid JSON' })
-    };
-  }
-
-  const payload = {
-    fields: {
-      Goal:            goal,
-      'Deadline Date': deadline,
-      'Money Stake USD': parseFloat(stake),
-      'Referee Email': supervisorEmail,
-      Name:            userEmail.split('@')[0],  // auto‑extract name
-      'User Email':    userEmail
-    }
-  };
 
   try {
-    const resp = await fetch(
-      `https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          Authorization:   `Bearer ${AIRTABLE_KEY}`
-        },
-        body: JSON.stringify(payload)
+    const b = JSON.parse(event.body || '{}');
+    const payload = {
+      fields:{
+        Goal: b.goal,
+        'Deadline Date': b.deadline,
+        'Money Stake USD': b.stake,
+        'Referee Email': b.supervisorEmail,
+        Name: b.userEmail.split('@')[0],
+        'User Email': b.userEmail
       }
-    );
-    const data = await resp.json();
-    if (!resp.ok) {
-      return {
-        statusCode: resp.status,
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify(data)
-      };
+    };
+
+    const res = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE}/${AIRTABLE_TABLE}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${AIRTABLE_KEY}`},
+      body:JSON.stringify(payload)
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      return { statusCode: res.status, headers: cors(), body: txt };
     }
-    return {
-      statusCode: 200,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ success: true })
-    };
+    return { statusCode: 200, headers: cors(), body: JSON.stringify({ success:true }) };
+
   } catch (err) {
-    console.error(err);
-    return {
-      statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: err.message })
-    };
+    return { statusCode: 500, headers: cors(), body: JSON.stringify({ error: err.message }) };
   }
 };
+
+function cors () {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST,OPTIONS'
+  };
+}

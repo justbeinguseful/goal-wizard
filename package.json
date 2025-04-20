@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "stripe": "^11.0.0"
+    "stripe": "^11.0.0",
+    "node-fetch": "npm:node-fetch@^3.3.1"
   }
 }

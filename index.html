@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <!-- Stripe Elements requires this: -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Goal Wizard + Stripe & Airtable</title>
   <script src="https://js.stripe.com/v3/"></script>
+
   <style>
     /* Basic layout & reset */
     * { box-sizing: border-box; }
@@ -26,53 +29,219 @@
 </head>
 <body>
   <div id="wizard">
-    <!-- Steps omitted for brevity, same as before -->
+    <!-- STEP 1: Your goal -->
+    <div class="step active" data-step="1">
+      <h2>Enter your goal</h2>
+      <input id="goal" type="text" placeholder="e.g. Run a 5K in under 25m">
+      <div class="buttons">
+        <button id="next1" disabled>Next ➔</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Deadline -->
+    <div class="step" data-step="2">
+      <h2>Pick a deadline</h2>
+      <input id="deadline" type="date" max="">
+      <div class="buttons">
+        <button id="prev2">◀ Back</button>
+        <button id="next2" disabled>Next ➔</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Stake -->
+    <div class="step" data-step="3">
+      <h2>You pay *if* you fail</h2>
+      <select id="stake">
+        <option value="25">$25</option>
+        <option value="50">$50</option>
+        <option value="100" selected>$100</option>
+        <option value="500">$500</option>
+        <option value="1500">$1,500</option>
+        <option value="custom">Custom…</option>
+      </select>
+      <input id="stakeCustom" type="number" placeholder="Enter custom amount" style="display:none;">
+      <div class="buttons">
+        <button id="prev3">◀ Back</button>
+        <button id="next3">Next ➔</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Referee email -->
+    <div class="step" data-step="4">
+      <h2>Who checks if you did it?</h2>
+      <input id="referee" type="email" placeholder="referee@example.com">
+      <div class="buttons">
+        <button id="prev4">◀ Back</button>
+        <button id="next4" disabled>Next ➔</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Your email & T&C -->
+    <div class="step" data-step="5">
+      <h2>Your Email & Terms</h2>
+      <input id="userEmail" type="email" placeholder="you@example.com">
+      <div class="checkbox-field">
+        <input id="acceptedTnC" type="checkbox">
+        <label for="acceptedTnC">I accept the Terms & Conditions</label>
+      </div>
+      <div class="buttons">
+        <button id="prev5">◀ Back</button>
+        <button id="next5" disabled>Next ➔</button>
+      </div>
+    </div>
+
+    <!-- STEP 6: Payment -->
+    <div class="step" data-step="6">
+      <h2>Save your card (no charge now)</h2>
+      <div id="card-element"></div>
+      <div id="card-errors"></div>
+      <div class="buttons">
+        <button id="prev6">◀ Back</button>
+        <button id="submitPayment" disabled>Save Card</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Your Netlify site origin
-    const NETLIFY_ORIGIN = 'https://stately-sundae-b61659.netlify.app';
+    // ─────────────────────────────────────────────────────────────
+    //  CONFIGURATION
+    // ─────────────────────────────────────────────────────────────
 
-    // Replace relative calls with absolute URLs:
+    // 1) Your Netlify deploy URL (the one that works in Carrd)
+    const NETLIFY_ORIGIN = 'https://6803f2f4afb9a1be2e692c82--stately-sundae-b61659.netlify.app';
+
+    // 2) Your Stripe publishable key (test mode)
+    const stripe = Stripe('pk_test_51QlvTWRqx9e31yNivowo8yNe8Y8blvWyRdmCnz2e8coAjczm42o883VAvXTwv4d2Ys7JDQTAZDzd2gDw8J2DG97H00579aB4h4');
+    const elements = stripe.elements();
+    const card = elements.create('card');
+    card.mount('#card-element');
+
+    // ─────────────────────────────────────────────────────────────
+    //  WIZARD NAVIGATION & VALIDATION
+    // ─────────────────────────────────────────────────────────────
+
+    const steps = Array.from(document.querySelectorAll('.step'));
+    let current = 1;
+    function showStep(n) {
+      current = n;
+      steps.forEach(s => s.classList.toggle('active', +s.dataset.step === n));
+    }
+
+    // enable/disable buttons based on input
+    goal.oninput       = () => next1.disabled       = !goal.value.trim();
+    deadline.onchange  = () => next2.disabled       = !deadline.value;
+    referee.oninput    = () => next4.disabled       = !referee.value.includes('@');
+    userEmail.oninput  = () => next5.disabled       = !userEmail.value.includes('@') || !acceptedTnC.checked;
+    acceptedTnC.onchange = () => next5.disabled     = !userEmail.value.includes('@') || !acceptedTnC.checked;
+    document.getElementById('stake').onchange = e => {
+      if (e.target.value === 'custom') {
+        stakeCustom.style.display = 'block';
+        stakeCustom.oninput = () => next3.disabled = !(+stakeCustom.value > 0);
+        next3.disabled = true;
+      } else {
+        stakeCustom.style.display = 'none';
+        next3.disabled = false;
+      }
+    };
+
+    // Set date max to 6 months from today
+    const sixMonths = new Date();
+    sixMonths.setMonth(sixMonths.getMonth()+6);
+    deadline.max = sixMonths.toISOString().split('T')[0];
+
+    // button listeners
+    next1.onclick = () => showStep(2);
+    prev2.onclick = () => showStep(1);
+    next2.onclick = () => showStep(3);
+    prev3.onclick = () => showStep(2);
+    next3.onclick = () => showStep(4);
+    prev4.onclick = () => showStep(3);
+    next4.onclick = () => showStep(5);
+    prev5.onclick = () => showStep(4);
+    next5.onclick = () => showStep(6);
+    prev6.onclick = () => showStep(5);
+
+    // allow Enter to move on
+    ['goal','deadline','stake','referee','userEmail','stakeCustom'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          const btn = document.querySelector(`.step[data-step="${current}"] button:not([disabled])`);
+          btn && btn.click();
+        }
+      });
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    //  NETLIFY FUNCTION CALLS
+    // ─────────────────────────────────────────────────────────────
+
     async function createSetupIntent(payload) {
-      return fetch(`${NETLIFY_ORIGIN}/.netlify/functions/create-setup-intent`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/create-setup-intent`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
       });
-    }
-    async function writeToAirtable(payload) {
-      return fetch(`${NETLIFY_ORIGIN}/.netlify/functions/submit-goal`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      return res;
     }
 
-    // In your submit handler:
-    document.getElementById('submitPayment').onclick = async () => {
-      console.log('submitPayment clicked');
-      const stakeValue = /* ... */;
-      const payload = { /* ... collect fields ... */ };
+    async function writeToAirtable(payload) {
+      const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/submit-goal`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return res;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  SUBMIT / PAYMENT FLOW
+    // ─────────────────────────────────────────────────────────────
+
+    const submitBtn = document.getElementById('submitPayment');
+    // enable pay button when card is ready
+    card.on('change', evt => {
+      submitBtn.disabled = !!evt.error;
+      cardErrors.textContent = evt.error ? evt.error.message : '';
+    });
+
+    submitBtn.onclick = async () => {
+      submitBtn.disabled = true;
+      const payload = {
+        goal: goal.value,
+        deadline: deadline.value,
+        stake: (stake.value==='custom' ? +stakeCustom.value : +stake.value),
+        referee: referee.value,
+        userEmail: userEmail.value
+      };
 
       try {
+        // 1) create SetupIntent
         const siRes = await createSetupIntent(payload);
         if (!siRes.ok) throw new Error('SetupIntent failed');
         const { clientSecret } = await siRes.json();
 
-        const result = await stripe.confirmCardSetup(clientSecret, { payment_method: { card } });
-        if (result.error) throw result.error;
+        // 2) collect card & confirm
+        const confirm = await stripe.confirmCardSetup(clientSecret, { payment_method:{ card } });
+        if (confirm.error) throw confirm.error;
 
-        const arRes = await writeToAirtable(payload);
-        if (!arRes.ok) throw new Error('Airtable save failed');
+        // 3) only after card saved, write to Airtable
+        const atRes = await writeToAirtable(payload);
+        if (!atRes.ok) throw new Error('Airtable save failed');
 
-        alert('✅ All set!');
+        alert('✅ All set! You’ll get an email confirmation.');
         showStep(1);
+        // reset everything
+        [goal, deadline, stake, referee, userEmail, stakeCustom].forEach(f=>{ if(f)f.value=''; });
+        acceptedTnC.checked = false;
       } catch (err) {
         console.error(err);
-        alert('Error: ' + err.message);
+        alert('Error: '+err.message);
+      } finally {
+        submitBtn.disabled = false;
       }
     };
-
-    // Rest of your initialization (watchRequired, navigation, etc.)
   </script>
 </body>
 </html>

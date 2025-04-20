@@ -13,9 +13,10 @@
     .step.active { display: block; }
     h2 { font-size: 1.5em; margin-bottom: 0.5em; text-align: center; }
     input { width: 100%; padding: 0.75em; font-size: 1em; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 4px; }
-    .checkbox-field { display: flex; align-items: center; margin: 1em 0; }
-    .checkbox-field input { margin-right: 0.5em; }
-    .buttons { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 1em; }
+    .checkbox-field { display: flex; align-items: center; margin-bottom: 1em; }
+    .checkbox-field input { margin: 0; }
+    .checkbox-field label { margin-left: 0.5em; font-size: 0.9em; line-height: 1.2; }
+    .buttons { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 1.5em; }
     button { flex: 1; padding: 0.75em; font-size: 1em; background: #e53e3e; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
     button[disabled] { opacity: 0.6; cursor: not-allowed; }
     /* Stripe element styling */
@@ -29,7 +30,9 @@
     <div class="step active" data-step="1">
       <h2>Enter your goal</h2>
       <input type="text" id="goal" placeholder="e.g. Run a 5K in under 25min">
-      <div class="buttons"><button id="next1">Next ➔</button></div>
+      <div class="buttons">
+        <button type="button" id="next1">Next ➔</button>
+      </div>
     </div>
 
     <!-- Step 2: Deadline -->
@@ -37,8 +40,8 @@
       <h2>Pick a deadline</h2>
       <input type="date" id="deadline">
       <div class="buttons">
-        <button id="prev2">◀ Back</button>
-        <button id="next2">Next ➔</button>
+        <button type="button" id="prev2">◀ Back</button>
+        <button type="button" id="next2">Next ➔</button>
       </div>
     </div>
 
@@ -47,8 +50,8 @@
       <h2>Set your price ($)</h2>
       <input type="number" id="stake" placeholder="e.g. 100">
       <div class="buttons">
-        <button id="prev3">◀ Back</button>
-        <button id="next3">Next ➔</button>
+        <button type="button" id="prev3">◀ Back</button>
+        <button type="button" id="next3">Next ➔</button>
       </div>
     </div>
 
@@ -57,8 +60,8 @@
       <h2>Referee’s Email</h2>
       <input type="email" id="referee" placeholder="referee@example.com">
       <div class="buttons">
-        <button id="prev4">◀ Back</button>
-        <button id="next4">Next ➔</button>
+        <button type="button" id="prev4">◀ Back</button>
+        <button type="button" id="next4">Next ➔</button>
       </div>
     </div>
 
@@ -71,8 +74,8 @@
         <label for="terms">I accept the Terms & Conditions</label>
       </div>
       <div class="buttons">
-        <button id="prev5">◀ Back</button>
-        <button id="next5" disabled>Next ➔</button>
+        <button type="button" id="prev5">◀ Back</button>
+        <button type="button" id="next5" disabled>Next ➔</button>
       </div>
     </div>
 
@@ -82,17 +85,17 @@
       <div id="card-element"></div>
       <div id="card-errors" role="alert"></div>
       <div class="buttons">
-        <button id="prev6">◀ Back</button>
-        <button id="submitPayment">Pay & Submit</button>
+        <button type="button" id="prev6">◀ Back</button>
+        <button type="button" id="submitPayment">Pay & Submit</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Step navigation functions
+    // Navigation logic
     function showStep(n) {
       document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-      document.querySelector(`[data-step="${n}"]`).classList.add('active');
+      document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
     }
     document.getElementById('next1').onclick = () => showStep(2);
     document.getElementById('prev2').onclick = () => showStep(1);
@@ -108,21 +111,18 @@
     // Enable step 6 only when terms checked
     const terms = document.getElementById('terms');
     const next5 = document.getElementById('next5');
-    terms.addEventListener('change', () => {
-      next5.disabled = !terms.checked;
-    });
+    terms.addEventListener('change', () => next5.disabled = !terms.checked);
 
-    // Stripe initialization
+    // Stripe init
     const stripe = Stripe('pk_live_51QlvTWRqx9e31yNivowo8yNe8Y8blvWyRdmCnz2e8coAjczm42o883VAvXTwv4d2Ys7JDQTAZDzd2gDw8J2DG97H00579aB4h4');
     const elements = stripe.elements();
     const card = elements.create('card');
     card.mount('#card-element');
-    card.on('change', e => {
-      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
-    });
+    card.on('change', e => document.getElementById('card-errors').textContent = e.error ? e.error.message : '');
 
-    // Handle payment and Airtable submit
+    // Payment & Airtable submit
     document.getElementById('submitPayment').onclick = async () => {
+      console.log('submitPayment clicked');
       const payload = {
         goal: document.getElementById('goal').value,
         deadline: document.getElementById('deadline').value,
@@ -132,26 +132,22 @@
         terms: terms.checked
       };
 
-      // Create SetupIntent
+      // 1) Create SetupIntent
       const siRes = await fetch('/.netlify/functions/create-setup-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       const { clientSecret } = await siRes.json();
 
-      // Confirm card setup
-      const result = await stripe.confirmCardSetup(clientSecret, { payment_method: { card } });
+      // 2) Confirm card setup
+      const result = await stripe.confirmCardSetup(clientSecret, { payment_method: { card }});
       if (result.error) {
         document.getElementById('card-errors').textContent = result.error.message;
         return;
       }
 
-      // Write to Airtable
+      // 3) Airtable write
       await fetch('/.netlify/functions/submit-goal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
 
       alert('✅ All set!');

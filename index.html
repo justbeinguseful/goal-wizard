@@ -5,6 +5,7 @@
   <title>Goal Wizard + Stripe & Airtable</title>
   <script src="https://js.stripe.com/v3/"></script>
   <style>
+    /* Basic layout & reset */
     * { box-sizing: border-box; }
     body { margin: 0; font-family: sans-serif; background: transparent; }
     #wizard { max-width: 400px; margin: 20px auto; padding: 0 10px; }
@@ -20,20 +21,26 @@
     button[disabled] { opacity: 0.6; cursor: not-allowed; }
     #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 4px; }
     #card-errors { color: red; margin-top: 0.5em; font-size: 0.9em; }
+    /* Responsive tweaks */
+    @media (max-width: 480px) {
+      #wizard { margin: 10px; }
+      button { font-size: 0.9em; }
+    }
   </style>
 </head>
 <body>
+  <!-- Note: disable Adblock/Tracker blockers to allow Stripe scripts -->
   <div id="wizard">
     <div class="step active" data-step="1">
       <h2>Enter your goal</h2>
       <input type="text" id="goal" placeholder="e.g. Run a 5K in under 25min">
-      <div class="buttons"><button type="button" id="next1">Next ➔</button></div>
+      <div class="buttons"><button type="button" id="next1" disabled>Next ➔</button></div>
     </div>
 
     <div class="step" data-step="2">
       <h2>Pick a deadline</h2>
       <input type="date" id="deadline">
-      <div class="buttons"><button type="button" id="prev2">◀ Back</button><button type="button" id="next2">Next ➔</button></div>
+      <div class="buttons"><button type="button" id="prev2">◀ Back</button><button type="button" id="next2" disabled>Next ➔</button></div>
     </div>
 
     <div class="step" data-step="3">
@@ -53,13 +60,16 @@
     <div class="step" data-step="4">
       <h2>Referee’s Email</h2>
       <input type="email" id="referee" placeholder="referee@example.com">
-      <div class="buttons"><button type="button" id="prev4">◀ Back</button><button type="button" id="next4">Next ➔</button></div>
+      <div class="buttons"><button type="button" id="prev4">◀ Back</button><button type="button" id="next4" disabled>Next ➔</button></div>
     </div>
 
     <div class="step" data-step="5">
       <h2>Your Email & Terms</h2>
       <input type="email" id="userEmail" placeholder="Your email">
-      <div class="checkbox-field"><input type="checkbox" id="terms"><label for="terms">I accept the Terms & Conditions</label></div>
+      <div class="checkbox-field">
+        <input type="checkbox" id="terms">
+        <label for="terms">I accept the Terms & Conditions</label>
+      </div>
       <div class="buttons"><button type="button" id="prev5">◀ Back</button><button type="button" id="next5" disabled>Next ➔</button></div>
     </div>
 
@@ -78,37 +88,42 @@
     const sixMonths = new Date(today.getFullYear(), today.getMonth() + 6, today.getDate());
     deadlineInput.max = sixMonths.toISOString().split('T')[0];
 
-    // Enter key to advance
+    // Utility: enable button when input valid
+    function watchRequired(inputEl, buttonEl) {
+      function check() {
+        buttonEl.disabled = !inputEl.value.trim();
+      }
+      inputEl.addEventListener('input', check);
+      // initial
+      check();
+    }
+    watchRequired(document.getElementById('goal'), document.getElementById('next1'));
+    watchRequired(document.getElementById('deadline'), document.getElementById('next2'));
+    watchRequired(document.getElementById('referee'), document.getElementById('next4'));
+    watchRequired(document.getElementById('userEmail'), document.getElementById('next5'));
+
+    // Enter key advance
     function addEnterListener(inputId, nextBtnId) {
       document.getElementById(inputId).addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          document.getElementById(nextBtnId).click();
+        if (e.key === 'Enter' && !document.getElementById(nextBtnId).disabled) {
+          e.preventDefault(); document.getElementById(nextBtnId).click();
         }
       });
     }
-    addEnterListener('goal', 'next1');
-    addEnterListener('deadline', 'next2');
-    addEnterListener('referee', 'next4');
-    addEnterListener('userEmail', 'next5');
+    ['goal','deadline','referee','userEmail'].forEach(id => addEnterListener(id, 'next'+id.charAt(0).toUpperCase()+id.slice(1)));
 
     // Stake dropdown logic
     const stakeSelect = document.getElementById('stakeSelect');
     const stakeCustom = document.getElementById('stakeCustom');
     stakeSelect.addEventListener('change', () => {
-      if (stakeSelect.value === 'custom') {
-        stakeCustom.style.display = 'block';
-        stakeCustom.focus();
-      } else {
-        stakeCustom.style.display = 'none';
-      }
+      if (stakeSelect.value === 'custom') stakeCustom.style.display = 'block';
+      else stakeCustom.style.display = 'none';
     });
-    addEnterListener('stakeCustom', 'next3');
 
     // Navigation
     function showStep(n) {
       document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-      document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
+      document.querySelector(`[data-step="${n}"]`).classList.add('active');
     }
     document.getElementById('next1').onclick = () => showStep(2);
     document.getElementById('prev2').onclick = () => showStep(1);
@@ -123,8 +138,7 @@
 
     // Enable next5 only when terms checked
     const terms = document.getElementById('terms');
-    const next5 = document.getElementById('next5');
-    terms.addEventListener('change', () => next5.disabled = !terms.checked);
+    terms.addEventListener('change', () => document.getElementById('next5').disabled = !terms.checked);
 
     // Stripe init
     const stripe = Stripe('pk_live_51QlvTWRqx9e31yNivowo8yNe8Y8blvWyRdmCnz2e8coAjczm42o883VAvXTwv4d2Ys7JDQTAZDzd2gDw8J2DG97H00579aB4h4');
@@ -147,21 +161,25 @@
       };
 
       // 1) SetupIntent
-      const siRes = await fetch('/.netlify/functions/create-setup-intent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const { clientSecret } = await siRes.json();
+      try {
+        const siRes = await fetch('/.netlify/functions/create-setup-intent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!siRes.ok) throw new Error('SetupIntent failed');
+        const { clientSecret } = await siRes.json();
 
-      // 2) Confirm card setup
-      const result = await stripe.confirmCardSetup(clientSecret, { payment_method: { card } });
-      if (result.error) {
-        document.getElementById('card-errors').textContent = result.error.message;
-        return;
+        // 2) Confirm card setup
+        const result = await stripe.confirmCardSetup(clientSecret, { payment_method: { card } });
+        if (result.error) throw result.error;
+
+        // 3) Airtable write
+        const arRes = await fetch('/.netlify/functions/submit-goal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!arRes.ok) throw new Error('Airtable save failed');
+
+        alert('✅ All set!');
+        showStep(1);
+      } catch (err) {
+        console.error(err);
+        alert('Error: ' + err.message);
       }
-
-      // 3) Airtable write
-      await fetch('/.netlify/functions/submit-goal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-
-      alert('✅ All set!');
-      showStep(1);
     };
   </script>
 </body>

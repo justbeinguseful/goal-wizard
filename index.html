@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Goal Wizard + Stripe & Airtable</title>
   <script src="https://js.stripe.com/v3/"></script>
   <style>
-    /* Basic layout & reset */
     * { box-sizing: border-box; }
     body { margin: 0; font-family: sans-serif; background: transparent; }
     #wizard { max-width: 400px; margin: 20px auto; padding: 0 10px; }
@@ -27,172 +26,164 @@
 </head>
 <body>
   <div id="wizard">
-    <!-- Step 1: Collect goal info -->
-    <div data-step="1" class="step active">
+    <!-- Step 1: Goal -->
+    <div class="step active" id="step-1">
       <h2>Set Your Goal</h2>
-      <input id="goal" placeholder="Your goal" />
-      <input id="deadline" type="date" placeholder="Deadline" />
+      <input id="goal" placeholder="Your goal description" />
+      <div class="buttons">
+        <button id="next-1">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Deadline -->
+    <div class="step" id="step-2">
+      <h2>Set Deadline</h2>
+      <input id="deadline" type="date" />
+      <div class="buttons">
+        <button id="back-2">← Back</button>
+        <button id="next-2">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Stake & Referee -->
+    <div class="step" id="step-3">
+      <h2>Set Stake & Referee</h2>
       <select id="stake">
         <option value="25">$25</option>
         <option value="50">$50</option>
         <option value="100" selected>$100</option>
         <option value="500">$500</option>
-        <option value="1500">$1500</option>
-        <option value="custom">Custom...</option>
+        <option value="1500">$1,500</option>
+        <option value="custom">Custom…</option>
       </select>
-      <input id="customStake" type="number" placeholder="Enter custom amount" style="display:none;" />
-      <input id="supervisor" type="email" placeholder="Referee Email" />
-      <input id="email" type="email" placeholder="Your Email" />
+      <input id="stake-custom" placeholder="Enter custom amount" type="number" style="display:none;" />
+      <input id="refereeEmail" placeholder="Referee Email" type="email" />
       <div class="buttons">
-        <button id="next1" disabled>Next →</button>
+        <button id="back-3">← Back</button>
+        <button id="next-3">Next →</button>
       </div>
     </div>
 
-    <!-- Step 2: Terms & Conditions -->
-    <div data-step="2" class="step">
-      <h2>I accept the Terms & Conditions</h2>
+    <!-- Step 4: Email & Terms -->
+    <div class="step" id="step-4">
+      <h2>Your Email & Terms</h2>
+      <input id="userEmail" placeholder="Your Email" type="email" />
       <div class="checkbox-field">
-        <input type="checkbox" id="terms" />
+        <input id="terms" type="checkbox" />
         <label for="terms">I accept the Terms & Conditions</label>
       </div>
       <div class="buttons">
-        <button id="back2">← Back</button>
-        <button id="next2" disabled>Next →</button>
+        <button id="back-4">← Back</button>
+        <button id="next-4">Next →</button>
       </div>
     </div>
 
-    <!-- Step 3: Save payment method -->
-    <div data-step="3" class="step">
-      <h2>Save your card (no charge now)</h2>
+    <!-- Step 5: Payment -->
+    <div class="step" id="step-5">
+      <h2>Save Your Card (no charge now)</h2>
       <input id="cardName" placeholder="Name on card" />
       <input id="zip" placeholder="ZIP / Postal code" />
       <div id="card-element"></div>
       <div id="card-errors"></div>
       <div class="buttons">
-        <button id="back3">← Back</button>
+        <button id="back-5">← Back</button>
         <button id="payBtn" disabled>Save Card</button>
       </div>
-    </div>
-
-    <!-- Step 4: Confirmation -->
-    <div data-step="4" class="step">
-      <h2>✅ All set!</h2>
-      <p>Your goal and payment method have been saved.</p>
     </div>
   </div>
 
   <script>
-    /* ----------- CONFIG ----------- */
+    // CONFIG
     const NETLIFY_ORIGIN = location.origin.includes('netlify.app')
       ? location.origin
       : 'https://stately-sundae-b61659.netlify.app';
-    const stripe = Stripe('pk_test_51QlvTWRqx9e31yNiWM2SIVGe7yPV1O9bSfre9DK17jfT5Gv99rFzsJjnuNaea3b8S9ATiSuNN5UOdTd7EOpujFKS00Ocdonm6h');
+    const stripe = Stripe('pk_test_51QlvTWRqx9e31yNiWM2SIVGe7yPV109bSfre9DK17jfT5Gv99rFzsJjnuNaea3b8S9ATiSuNN5UOdTd7EOpujFKS00Ocdonm6h');
+
+    // UTILS
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById(`step-${n}`).classList.add('active');
+    }
+
+    // WIZARD NAVIGATION
+    document.getElementById('next-1').onclick = () => showStep(2);
+    document.getElementById('back-2').onclick = () => showStep(1);
+    document.getElementById('next-2').onclick = () => showStep(3);
+    document.getElementById('back-3').onclick = () => showStep(2);
+    document.getElementById('next-3').onclick = () => {
+      const sel = document.getElementById('stake');
+      if (sel.value === 'custom') document.getElementById('stake-custom').style.display = 'block';
+      showStep(4);
+    };
+    document.getElementById('back-4').onclick = () => showStep(3);
+    document.getElementById('next-4').onclick = () => showStep(5);
+    document.getElementById('back-5').onclick = () => showStep(4);
+
+    // CARD ELEMENT SETUP
     const elements = stripe.elements();
     const card = elements.create('card', { hidePostalCode: true });
     card.mount('#card-element');
-
-    /* ----------- STEPPER UTILS ----------- */
-    let currentStep = 1;
-    function showStep(n) {
-      document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-      document.querySelector(`[data-step="${n}"]`).classList.add('active');
-      currentStep = n;
-    }
-
-    /* ----------- VALIDATION & NAV ----------- */
-    const goalIn = document.getElementById('goal');
-    const deadlineIn = document.getElementById('deadline');
-    const stakeSel = document.getElementById('stake');
-    const customStakeIn = document.getElementById('customStake');
-    const supIn = document.getElementById('supervisor');
-    const emailIn = document.getElementById('email');
-    const next1 = document.getElementById('next1');
-    function validateStep1() {
-      const hasGoal = !!goalIn.value.trim();
-      const hasDeadline = !!deadlineIn.value;
-      let stake = stakeSel.value === 'custom' ? customStakeIn.value : stakeSel.value;
-      const hasStake = stake && Number(stake) > 0;
-      const hasSup = !!supIn.value.includes('@');
-      const hasEmail = !!emailIn.value.includes('@');
-      next1.disabled = !(hasGoal && hasDeadline && hasStake && hasSup && hasEmail);
-    }
-    [goalIn, deadlineIn, stakeSel, customStakeIn, supIn, emailIn].forEach(el =>
-      el.addEventListener('input', validateStep1)
-    );
-    stakeSel.addEventListener('change', () => {
-      customStakeIn.style.display = stakeSel.value === 'custom' ? 'block' : 'none';
-      validateStep1();
-    });
-    next1.onclick = () => showStep(2);
-
-    const termsIn = document.getElementById('terms');
-    const next2 = document.getElementById('next2');
-    const back2 = document.getElementById('back2');
-    termsIn.onchange = () => { next2.disabled = !termsIn.checked; };
-    back2.onclick = () => showStep(1);
-    next2.onclick = () => showStep(3);
-
-    const back3 = document.getElementById('back3');
     const payBtn = document.getElementById('payBtn');
-    card.on('change', ev => {
-      document.getElementById('card-errors').textContent = ev.error ? ev.error.message : '';
-      payBtn.disabled = !!ev.error;
+    card.on('change', e => {
+      document.getElementById('card-errors').textContent = e.error?.message || '';
+      payBtn.disabled = !e.complete;
     });
-    back3.onclick = () => showStep(2);
 
-    /* ----------- NETLIFY FUNCTIONS ----------- */
-    async function createSetupIntent() {
-      const payload = { email: emailIn.value };
+    // FETCH HELPERS
+    async function createSetupIntent(payload) {
       const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/create-setup-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('SetupIntent failed');
-      return res.json();
+      return res;
     }
-    async function writeToAirtable(fields) {
+    async function writeToAirtable(payload) {
       const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/submit-goal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields })
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error(`Airtable-${res.status}`);
-      return res.json();
+      return res;
     }
 
-    /* ----------- FINAL SUBMISSION ----------- */
+    // FINAL SUBMISSION
     payBtn.onclick = async () => {
-      payBtn.disabled = true;
+      // Collect all fields
+      const goal = document.getElementById('goal').value;
+      const deadline = document.getElementById('deadline').value;
+      let stake = document.getElementById('stake').value;
+      if (stake === 'custom') stake = document.getElementById('stake-custom').value;
+      const supervisor = document.getElementById('refereeEmail').value;
+      const email = document.getElementById('userEmail').value;
+      const termsChecked = document.getElementById('terms').checked;
+      const name = email.split('@')[0];
+      const cardName = document.getElementById('cardName').value;
+      const zip = document.getElementById('zip').value;
+
+      const payload = { goal, deadline, stake, supervisor, email, name, termsChecked, cardName, zip };
+
       try {
-        const { clientSecret } = await createSetupIntent();
-        const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+        const siRes = await createSetupIntent(payload);
+        if (!siRes.ok) throw new Error(`SetupIntent failed: ${await siRes.text()}`);
+        const { clientSecret } = await siRes.json();
+
+        const { error } = await stripe.confirmCardSetup(clientSecret, {
           payment_method: {
             card,
-            billing_details: { name: document.getElementById('cardName').value }
+            billing_details: { name: cardName, address: { postal_code: zip } }
           }
         });
         if (error) throw error;
 
-        // build Airtable payload
-        const name = emailIn.value.split('@')[0];
-        const airtableFields = {
-          'Name': name,
-          'Email': emailIn.value,
-          'Goal': goalIn.value,
-          'Deadline Date': deadlineIn.value,
-          'Referee Name': '',
-          'Referee Email': supIn.value,
-          'Money Stake USD': Number(stakeSel.value === 'custom' ? customStakeIn.value : stakeSel.value),
-          'Terms': termsIn.checked,
-          'Payment status': 'Card on file (test)'
-        };
+        const arRes = await writeToAirtable({ ...payload, paymentStatus: 'Card on file (test)' });
+        if (!arRes.ok) throw new Error(`Airtable save failed: ${await arRes.text()}`);
 
-        await writeToAirtable(airtableFields);
-        showStep(4);
+        alert('✅ Goal saved!');
+        showStep(1);
       } catch (err) {
-        alert(err.message);
-        payBtn.disabled = false;
+        console.error(err);
+        alert(`Error: ${err.message}`);
       }
     };
   </script>

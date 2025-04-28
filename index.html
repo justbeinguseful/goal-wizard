@@ -99,7 +99,7 @@ const NETLIFY_ORIGIN = location.origin.includes('netlify.app')
   ? location.origin                // works for both preview + custom domain
   : 'https://stately-sundae-b61659.netlify.app'; // fallback
 
-const stripe = Stripe('pk_test_51QlvTWRqx9e31yNivowo8yNe8Y8blvWyRdmCnz2e8coAjczm42o883VAvXTwv4d2Ys7JDQTAZDzd2gDw8J2DG97H00579aB4h4');
+const stripe = Stripe('pk_test_51QlvTWRqx9e31yNiWM2SIVGe7yPV1O9bSfre9DK17jfT5Gv99rFzsJjnuNaea3b8S9ATiSuNN5UOdTd7EOpujFKS00Ocdonm6h');
 const elements = stripe.elements();
 const card     = elements.create('card', {hidePostalCode:true});
 card.mount('#card-element');

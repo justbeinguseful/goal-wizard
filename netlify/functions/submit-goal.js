@@ -1,17 +1,16 @@
-// netlify/functions/submit-goal.js – adjusted to match your Airtable columns exactly
-
+// netlify/functions/submit-goal.js
 const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
   const {
-    name,          // e.g. "Jesper B"
-    email,         // your own email (not the referee)
+    name,
+    email,
     goal,
     deadline,
     stake,
-    refereeName,
-    supervisor,    // referee email
-    termsChecked   // boolean ✓ terms accepted
+    supervisor,
+    termsChecked,
+    paymentStatus
   } = JSON.parse(event.body);
 
   const AIRTABLE_BASE  = 'appXTQ0JUx74XJmAA';
@@ -28,15 +27,14 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         fields: {
-          "Name":           name,
-          "Email":          email,
-          "Goal":           goal,
-          "Deadline Date":  deadline,
-          "Referee Name":   refereeName,
-          "Referee Email":  supervisor,
+          "Name":            name,
+          "Email":           email,
+          "Goal":            goal,
+          "Deadline Date":   deadline,
+          "Referee Email":   supervisor,
           "Money Stake USD": Number(stake),
-          "Terms":          !!termsChecked,
-          "Payment status": "Card on file (test)" // optional status column
+          "Terms":           termsChecked,
+          "Payment status":  paymentStatus
         }
       })
     }

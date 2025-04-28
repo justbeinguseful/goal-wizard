@@ -26,6 +26,7 @@
 </head>
 <body>
   <div id="wizard">
+
     <!-- Step 1: Goal -->
     <div class="step active" id="step-1">
       <h2>Set Your Goal</h2>
@@ -45,9 +46,9 @@
       </div>
     </div>
 
-    <!-- Step 3: Stake & Referee -->
+    <!-- Step 3: Stake -->
     <div class="step" id="step-3">
-      <h2>Set Stake & Referee</h2>
+      <h2>Set Stake</h2>
       <select id="stake">
         <option value="25">$25</option>
         <option value="50">$50</option>
@@ -57,15 +58,24 @@
         <option value="custom">Custom…</option>
       </select>
       <input id="stake-custom" placeholder="Enter custom amount" type="number" style="display:none;" />
-      <input id="refereeEmail" placeholder="Referee Email" type="email" />
       <div class="buttons">
         <button id="back-3">← Back</button>
         <button id="next-3">Next →</button>
       </div>
     </div>
 
-    <!-- Step 4: Email & Terms -->
+    <!-- Step 4: Referee -->
     <div class="step" id="step-4">
+      <h2>Your Referee</h2>
+      <input id="refereeEmail" placeholder="Referee Email" type="email" />
+      <div class="buttons">
+        <button id="back-4">← Back</button>
+        <button id="next-4">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Email & Terms -->
+    <div class="step" id="step-5">
       <h2>Your Email & Terms</h2>
       <input id="userEmail" placeholder="Your Email" type="email" />
       <div class="checkbox-field">
@@ -73,119 +83,140 @@
         <label for="terms">I accept the Terms & Conditions</label>
       </div>
       <div class="buttons">
-        <button id="back-4">← Back</button>
-        <button id="next-4">Next →</button>
+        <button id="back-5">← Back</button>
+        <button id="next-5">Next →</button>
       </div>
     </div>
 
-    <!-- Step 5: Payment -->
-    <div class="step" id="step-5">
+    <!-- Step 6: Payment -->
+    <div class="step" id="step-6">
       <h2>Save Your Card (no charge now)</h2>
       <input id="cardName" placeholder="Name on card" />
       <input id="zip" placeholder="ZIP / Postal code" />
       <div id="card-element"></div>
       <div id="card-errors"></div>
       <div class="buttons">
-        <button id="back-5">← Back</button>
+        <button id="back-6">← Back</button>
         <button id="payBtn" disabled>Save Card</button>
       </div>
     </div>
+
   </div>
 
   <script>
-    // CONFIG
-    const NETLIFY_ORIGIN = location.origin.includes('netlify.app')
-      ? location.origin
-      : 'https://stately-sundae-b61659.netlify.app';
-    const stripe = Stripe('pk_test_51QlvTWRqx9e31yNiWM2SIVGe7yPV109bSfre9DK17jfT5Gv99rFzsJjnuNaea3b8S9ATiSuNN5UOdTd7EOpujFKS00Ocdonm6h');
-
-    // UTILS
-    function showStep(n) {
-      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-      document.getElementById(`step-${n}`).classList.add('active');
-    }
-
-    // WIZARD NAVIGATION
-    document.getElementById('next-1').onclick = () => showStep(2);
-    document.getElementById('back-2').onclick = () => showStep(1);
-    document.getElementById('next-2').onclick = () => showStep(3);
-    document.getElementById('back-3').onclick = () => showStep(2);
-    document.getElementById('next-3').onclick = () => {
-      const sel = document.getElementById('stake');
-      if (sel.value === 'custom') document.getElementById('stake-custom').style.display = 'block';
-      showStep(4);
-    };
-    document.getElementById('back-4').onclick = () => showStep(3);
-    document.getElementById('next-4').onclick = () => showStep(5);
-    document.getElementById('back-5').onclick = () => showStep(4);
-
-    // CARD ELEMENT SETUP
-    const elements = stripe.elements();
-    const card = elements.create('card', { hidePostalCode: true });
-    card.mount('#card-element');
-    const payBtn = document.getElementById('payBtn');
-    card.on('change', e => {
-      document.getElementById('card-errors').textContent = e.error?.message || '';
-      payBtn.disabled = !e.complete;
-    });
-
-    // FETCH HELPERS
-    async function createSetupIntent(payload) {
-      const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/create-setup-intent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      return res;
-    }
-    async function writeToAirtable(payload) {
-      const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/submit-goal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      return res;
-    }
-
-    // FINAL SUBMISSION
-    payBtn.onclick = async () => {
-      // Collect all fields
-      const goal = document.getElementById('goal').value;
-      const deadline = document.getElementById('deadline').value;
-      let stake = document.getElementById('stake').value;
-      if (stake === 'custom') stake = document.getElementById('stake-custom').value;
-      const supervisor = document.getElementById('refereeEmail').value;
-      const email = document.getElementById('userEmail').value;
-      const termsChecked = document.getElementById('terms').checked;
-      const name = email.split('@')[0];
-      const cardName = document.getElementById('cardName').value;
-      const zip = document.getElementById('zip').value;
-
-      const payload = { goal, deadline, stake, supervisor, email, name, termsChecked, cardName, zip };
-
-      try {
-        const siRes = await createSetupIntent(payload);
-        if (!siRes.ok) throw new Error(`SetupIntent failed: ${await siRes.text()}`);
-        const { clientSecret } = await siRes.json();
-
-        const { error } = await stripe.confirmCardSetup(clientSecret, {
-          payment_method: {
-            card,
-            billing_details: { name: cardName, address: { postal_code: zip } }
-          }
-        });
-        if (error) throw error;
-
-        const arRes = await writeToAirtable({ ...payload, paymentStatus: 'Card on file (test)' });
-        if (!arRes.ok) throw new Error(`Airtable save failed: ${await arRes.text()}`);
-
-        alert('✅ Goal saved!');
-        showStep(1);
-      } catch (err) {
-        console.error(err);
-        alert(`Error: ${err.message}`);
+    (async () => {
+      // ⚙️ Replace your hard-coded key with a fetch to the Function
+      const res = await fetch('/.netlify/functions/get-publishable-key');
+      if (!res.ok) {
+        console.error('Could not load publishable key', await res.text());
+        return;
       }
-    };
+      const { publishableKey } = await res.json();
+
+      // Initialize Stripe with the env-var
+      const stripe = Stripe(publishableKey);
+
+      // Helper to show/hide steps
+      function showStep(n) {
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById(`step-${n}`).classList.add('active');
+      }
+
+      // Navigation handlers
+      document.getElementById('next-1').onclick = () => showStep(2);
+      document.getElementById('back-2').onclick = () => showStep(1);
+      document.getElementById('next-2').onclick = () => showStep(3);
+      document.getElementById('back-3').onclick = () => showStep(2);
+      document.getElementById('next-3').onclick = () => {
+        const sel = document.getElementById('stake');
+        if (sel.value === 'custom') document.getElementById('stake-custom').style.display = 'block';
+        showStep(4);
+      };
+      document.getElementById('back-4').onclick = () => showStep(3);
+      document.getElementById('next-4').onclick = () => showStep(5);
+      document.getElementById('back-5').onclick = () => showStep(4);
+      document.getElementById('next-5').onclick = () => showStep(6);
+
+      // Mount the Stripe Card Element
+      const elements = stripe.elements();
+      const card = elements.create('card', { hidePostalCode: true });
+      card.mount('#card-element');
+
+      const payBtn = document.getElementById('payBtn');
+      card.on('change', e => {
+        document.getElementById('card-errors').textContent = e.error?.message || '';
+        payBtn.disabled = !e.complete;
+      });
+
+      // Helper fns to call your Netlify Functions
+      const NETLIFY_ORIGIN = location.origin.includes('netlify.app')
+        ? location.origin
+        : 'https://stately-sundae-b61659.netlify.app';
+
+      async function createSetupIntent(payload) {
+        return fetch(`${NETLIFY_ORIGIN}/.netlify/functions/create-setup-intent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      async function writeToAirtable(payload) {
+        return fetch(`${NETLIFY_ORIGIN}/.netlify/functions/submit-goal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      // Final submit: save card & write Airtable
+      payBtn.onclick = async () => {
+        const goal      = document.getElementById('goal').value;
+        const deadline  = document.getElementById('deadline').value;
+        let stake       = document.getElementById('stake').value;
+        if (stake === 'custom') stake = document.getElementById('stake-custom').value;
+        const supervisorEmail = document.getElementById('refereeEmail').value;
+        const refereeName     = supervisorEmail.split('@')[0];
+        const email     = document.getElementById('userEmail').value;
+        const name      = email.split('@')[0];
+        const termsChecked = document.getElementById('terms').checked;
+        const cardName  = document.getElementById('cardName').value;
+        const zip       = document.getElementById('zip').value;
+
+        try {
+          // 1️⃣ Create SetupIntent
+          const siRes = await createSetupIntent({ goal, deadline, stake, supervisorEmail, refereeName, email, name, termsChecked, cardName, zip });
+          if (!siRes.ok) throw new Error(`SetupIntent failed: ${await siRes.text()}`);
+          const { clientSecret } = await siRes.json();
+
+          // 2️⃣ Confirm Card Setup
+          const { error } = await stripe.confirmCardSetup(clientSecret, {
+            payment_method: { card, billing_details: { name: cardName, address: { postal_code: zip } } }
+          });
+          if (error) throw error;
+
+          // 3️⃣ Write to Airtable
+          const arRes = await writeToAirtable({
+            name,
+            email,
+            goal,
+            deadline,
+            stake,
+            refereeName,
+            supervisor: supervisorEmail,
+            termsChecked,
+            paymentStatus: 'Card on file (test)'
+          });
+          if (!arRes.ok) throw new Error(`Airtable save failed: ${await arRes.text()}`);
+
+          alert('✅ Goal saved!');
+          showStep(1);
+        } catch (err) {
+          console.error(err);
+          alert(`Error: ${err.message}`);
+        }
+      };
+    })();
   </script>
 </body>
 </html>

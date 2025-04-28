@@ -1,192 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Goal Wizard</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Goal Wizard + Stripe & Airtable</title>
   <script src="https://js.stripe.com/v3/"></script>
-
   <style>
-    /* Basic reset & layout */
-    *{box-sizing:border-box}body{margin:0;font-family:sans-serif;background:#fff}
-    #wizard{max-width:420px;margin:20px auto;padding:0 12px}
-    .step{display:none}.step.active{display:block}
-    h2{text-align:center;font-size:1.5em;margin:0 0 .6em}
-    input,select{width:100%;padding:.75em;font-size:1em;margin:0 0 1em;border:1px solid #ccc;border-radius:4px}
-    .buttons{display:flex;gap:10px;margin:0 0 1.6em}
-    button{flex:1;padding:.8em;font-size:1em;border:none;border-radius:4px;background:#e53e3e;color:#fff;cursor:pointer}
-    button[disabled]{opacity:.6;cursor:not-allowed}
-    .checkbox-field{display:flex;align-items:center;margin:.6em 0 1.2em}
-    .checkbox-field label{margin-left:.5em;font-size:.9em}
-    #card-element{padding:12px;border:1px solid #ccc;border-radius:4px}
-    #card-errors{color:#e53e3e;font-size:.9em;margin-top:.4em}
-    @media(max-width:480px){#wizard{margin:10px}button{font-size:.92em}}
+    /* Basic layout & reset */
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: sans-serif; background: transparent; }
+    #wizard { max-width: 400px; margin: 20px auto; padding: 0 10px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    h2 { font-size: 1.5em; margin-bottom: 0.5em; text-align: center; }
+    input, select { width: 100%; padding: 0.75em; font-size: 1em; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 4px; }
+    .checkbox-field { display: flex; align-items: center; margin-bottom: 1em; }
+    .checkbox-field input { margin: 0; }
+    .checkbox-field label { margin-left: 0.5em; font-size: 0.9em; }
+    .buttons { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 1.5em; }
+    button { flex: 1; padding: 0.75em; font-size: 1em; background: #e53e3e; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+    button[disabled] { opacity: 0.6; cursor: not-allowed; }
+    #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 4px; }
+    #card-errors { color: red; margin-top: 0.5em; font-size: 0.9em; }
+    @media (max-width: 480px) { #wizard { margin: 10px; } button { font-size: 0.9em; } }
   </style>
 </head>
 <body>
-<div id="wizard">
+  <div id="wizard">
+    <!-- Step 1: Collect goal info -->
+    <div data-step="1" class="step active">
+      <h2>Set Your Goal</h2>
+      <input id="goal" placeholder="Your goal" />
+      <input id="deadline" type="date" placeholder="Deadline" />
+      <select id="stake">
+        <option value="25">$25</option>
+        <option value="50">$50</option>
+        <option value="100" selected>$100</option>
+        <option value="500">$500</option>
+        <option value="1500">$1500</option>
+        <option value="custom">Custom...</option>
+      </select>
+      <input id="customStake" type="number" placeholder="Enter custom amount" style="display:none;" />
+      <input id="supervisor" type="email" placeholder="Referee Email" />
+      <input id="email" type="email" placeholder="Your Email" />
+      <div class="buttons">
+        <button id="next1" disabled>Next →</button>
+      </div>
+    </div>
 
-  <!-- STEP 1 -->
-  <div class="step active" data-s="1">
-    <h2>Enter your goal</h2>
-    <input id="goal" placeholder="e.g. Run a 5 K in &lt; 25 min" />
-    <div class="buttons"><button id="n1" disabled>Next →</button></div>
-  </div>
+    <!-- Step 2: Terms & Conditions -->
+    <div data-step="2" class="step">
+      <h2>I accept the Terms & Conditions</h2>
+      <div class="checkbox-field">
+        <input type="checkbox" id="terms" />
+        <label for="terms">I accept the Terms & Conditions</label>
+      </div>
+      <div class="buttons">
+        <button id="back2">← Back</button>
+        <button id="next2" disabled>Next →</button>
+      </div>
+    </div>
 
-  <!-- STEP 2 -->
-  <div class="step" data-s="2">
-    <h2>Pick a deadline</h2>
-    <input id="deadline" type="date" />
-    <div class="buttons">
-      <button id="p2">← Back</button><button id="n2" disabled>Next →</button>
+    <!-- Step 3: Save payment method -->
+    <div data-step="3" class="step">
+      <h2>Save your card (no charge now)</h2>
+      <input id="cardName" placeholder="Name on card" />
+      <input id="zip" placeholder="ZIP / Postal code" />
+      <div id="card-element"></div>
+      <div id="card-errors"></div>
+      <div class="buttons">
+        <button id="back3">← Back</button>
+        <button id="payBtn" disabled>Save Card</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Confirmation -->
+    <div data-step="4" class="step">
+      <h2>✅ All set!</h2>
+      <p>Your goal and payment method have been saved.</p>
     </div>
   </div>
 
-  <!-- STEP 3 -->
-  <div class="step" data-s="3">
-    <h2>You pay *if* you fail</h2>
-    <select id="stake">
-      <option value="25">$25</option><option value="50">$50</option>
-      <option value="100" selected>$100</option><option value="500">$500</option>
-      <option value="1500">$1500</option><option value="custom">Custom…</option>
-    </select>
-    <input id="stakeCustom" type="number" style="display:none" placeholder="Custom amount" />
-    <div class="buttons">
-      <button id="p3">← Back</button><button id="n3">Next →</button>
-    </div>
-  </div>
+  <script>
+    /* ----------- CONFIG ----------- */
+    const NETLIFY_ORIGIN = location.origin.includes('netlify.app')
+      ? location.origin
+      : 'https://stately-sundae-b61659.netlify.app';
+    const stripe = Stripe('pk_test_51QlvTWRqx9e31yNiWM2SIVGe7yPV1O9bSfre9DK17jfT5Gv99rFzsJjnuNaea3b8S9ATiSuNN5UOdTd7EOpujFKS00Ocdonm6h');
+    const elements = stripe.elements();
+    const card = elements.create('card', { hidePostalCode: true });
+    card.mount('#card-element');
 
-  <!-- STEP 4 -->
-  <div class="step" data-s="4">
-    <h2>Referee’s email</h2>
-    <input id="referee" type="email" placeholder="referee@example.com" />
-    <div class="buttons">
-      <button id="p4">← Back</button><button id="n4" disabled>Next →</button>
-    </div>
-  </div>
+    /* ----------- STEPPER UTILS ----------- */
+    let currentStep = 1;
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+      document.querySelector(`[data-step="${n}"]`).classList.add('active');
+      currentStep = n;
+    }
 
-  <!-- STEP 5 -->
-  <div class="step" data-s="5">
-    <h2>Your email & Terms</h2>
-    <input id="userEmail" type="email" placeholder="you@example.com" />
-    <div class="checkbox-field">
-      <input id="tnc" type="checkbox" /><label for="tnc">I accept the Terms & Conditions</label>
-    </div>
-    <div class="buttons">
-      <button id="p5">← Back</button><button id="n5" disabled>Next →</button>
-    </div>
-  </div>
-
-  <!-- STEP 6 -->
-  <div class="step" data-s="6">
-    <h2>Save your card (no charge now)</h2>
-    <!-- extra billing inputs -->
-    <input id="cardName" placeholder="Name on card" />
-    <input id="zip" placeholder="ZIP / Postal code" />
-    <div id="card-element"></div>
-    <div id="card-errors"></div>
-    <div class="buttons">
-      <button id="p6">← Back</button><button id="payBtn" disabled>Save Card</button>
-    </div>
-  </div>
-
-</div>
-
-<script>
-/* ───────────────────────────────────────── CONFIG ─── */
-
-const NETLIFY_ORIGIN = location.origin.includes('netlify.app')
-  ? location.origin                // works for both preview + custom domain
-  : 'https://stately-sundae-b61659.netlify.app'; // fallback
-
-const stripe = Stripe('pk_test_51QlvTWRqx9e31yNiWM2SIVGe7yPV1O9bSfre9DK17jfT5Gv99rFzsJjnuNaea3b8S9ATiSuNN5UOdTd7EOpujFKS00Ocdonm6h');
-const elements = stripe.elements();
-const card     = elements.create('card', {hidePostalCode:true});
-card.mount('#card-element');
-
-/* ────────────────────────── wizard navigation helpers */
-
-let step = 1, steps = [...document.querySelectorAll('.step')];
-const show = n => { step=n; steps.forEach(s=>s.classList.toggle('active',s.dataset.s==n)); };
-
-goal.oninput   = ()=> n1.disabled = !goal.value.trim();
-deadline.onchange=()=> n2.disabled = !deadline.value;
-referee.oninput =()=> n4.disabled = !referee.value.includes('@');
-userEmail.oninput = accepted;  tnc.onchange = accepted;
-function accepted(){ n5.disabled = !(userEmail.value.includes('@')&&tnc.checked); }
-
-/* custom stake */
-stake.onchange = e=>{
-  if(e.target.value==='custom'){ stakeCustom.style.display='block'; stakeCustom.oninput=()=>n3.disabled=!(+stakeCustom.value>0); n3.disabled=true; }
-  else{ stakeCustom.style.display='none'; n3.disabled=false; }
-};
-
-/* date max 6 months */
-const max=new Date();max.setMonth(max.getMonth()+6);deadline.max=max.toISOString().split('T')[0];
-
-/* buttons */
-n1.onclick=_=>show(2); p2.onclick=_=>show(1); n2.onclick=_=>show(3);
-p3.onclick=_=>show(2); n3.onclick=_=>show(4); p4.onclick=_=>show(3);
-n4.onclick=_=>show(5); p5.onclick=_=>show(4); n5.onclick=_=>show(6);
-p6.onclick=_=>show(5);
-
-/* Enter advances forward */
-document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter')return;
-  const btn=[...document.querySelectorAll('.step.active button')].find(b=>!b.disabled&&b.textContent.startsWith('Next'));
-  btn&&btn.click();e.preventDefault();
-});
-
-/* Stripe change */
-card.on('change',e=>{
-  document.getElementById('card-errors').textContent = e.error?e.error.message:'';
-  payBtn.disabled = !!e.error;
-});
-
-/* ───────────────────── helpers to call Netlify functions */
-
-const post=(fn,data)=>fetch(`${NETLIFY_ORIGIN}/.netlify/functions/${fn}`,{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify(data)
-});
-
-/* ───────────────────── submit / payment */
-
-payBtn.onclick = async()=>{
-  payBtn.disabled=true;
-  const data={
-    goal:goal.value,
-    deadline:deadline.value,
-    stake: stake.value==='custom'? +stakeCustom.value:+stake.value,
-    supervisorEmail: referee.value,
-    userEmail: userEmail.value,
-    zip: zip.value,
-    name: cardName.value
-  };
-  try{
-    // 1) SetupIntent
-    const si = await post('create-setup-intent',data);
-    if(!si.ok)throw new Error('SetupIntent-'+si.status);
-    const {clientSecret}=await si.json();
-
-    // 2) confirm card
-    const conf=await stripe.confirmCardSetup(clientSecret,{
-      payment_method:{card,billing_details:{name:data.name, address:{postal_code:data.zip}}}
+    /* ----------- VALIDATION & NAV ----------- */
+    const goalIn = document.getElementById('goal');
+    const deadlineIn = document.getElementById('deadline');
+    const stakeSel = document.getElementById('stake');
+    const customStakeIn = document.getElementById('customStake');
+    const supIn = document.getElementById('supervisor');
+    const emailIn = document.getElementById('email');
+    const next1 = document.getElementById('next1');
+    function validateStep1() {
+      const hasGoal = !!goalIn.value.trim();
+      const hasDeadline = !!deadlineIn.value;
+      let stake = stakeSel.value === 'custom' ? customStakeIn.value : stakeSel.value;
+      const hasStake = stake && Number(stake) > 0;
+      const hasSup = !!supIn.value.includes('@');
+      const hasEmail = !!emailIn.value.includes('@');
+      next1.disabled = !(hasGoal && hasDeadline && hasStake && hasSup && hasEmail);
+    }
+    [goalIn, deadlineIn, stakeSel, customStakeIn, supIn, emailIn].forEach(el =>
+      el.addEventListener('input', validateStep1)
+    );
+    stakeSel.addEventListener('change', () => {
+      customStakeIn.style.display = stakeSel.value === 'custom' ? 'block' : 'none';
+      validateStep1();
     });
-    if(conf.error)throw conf.error;
+    next1.onclick = () => showStep(2);
 
-    // 3) Airtable record
-    const at=await post('submit-goal',data);
-    if(!at.ok)throw new Error('Airtable-'+at.status);
+    const termsIn = document.getElementById('terms');
+    const next2 = document.getElementById('next2');
+    const back2 = document.getElementById('back2');
+    termsIn.onchange = () => { next2.disabled = !termsIn.checked; };
+    back2.onclick = () => showStep(1);
+    next2.onclick = () => showStep(3);
 
-    alert('✅ Card saved & goal recorded!');
-    location.reload();
-  }catch(err){
-    alert('Error: '+err.message);
-    console.error(err);
-  }finally{ payBtn.disabled=false; }
-};
-</script>
+    const back3 = document.getElementById('back3');
+    const payBtn = document.getElementById('payBtn');
+    card.on('change', ev => {
+      document.getElementById('card-errors').textContent = ev.error ? ev.error.message : '';
+      payBtn.disabled = !!ev.error;
+    });
+    back3.onclick = () => showStep(2);
+
+    /* ----------- NETLIFY FUNCTIONS ----------- */
+    async function createSetupIntent() {
+      const payload = { email: emailIn.value };
+      const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/create-setup-intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('SetupIntent failed');
+      return res.json();
+    }
+    async function writeToAirtable(fields) {
+      const res = await fetch(`${NETLIFY_ORIGIN}/.netlify/functions/submit-goal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields })
+      });
+      if (!res.ok) throw new Error(`Airtable-${res.status}`);
+      return res.json();
+    }
+
+    /* ----------- FINAL SUBMISSION ----------- */
+    payBtn.onclick = async () => {
+      payBtn.disabled = true;
+      try {
+        const { clientSecret } = await createSetupIntent();
+        const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+          payment_method: {
+            card,
+            billing_details: { name: document.getElementById('cardName').value }
+          }
+        });
+        if (error) throw error;
+
+        // build Airtable payload
+        const name = emailIn.value.split('@')[0];
+        const airtableFields = {
+          'Name': name,
+          'Email': emailIn.value,
+          'Goal': goalIn.value,
+          'Deadline Date': deadlineIn.value,
+          'Referee Name': '',
+          'Referee Email': supIn.value,
+          'Money Stake USD': Number(stakeSel.value === 'custom' ? customStakeIn.value : stakeSel.value),
+          'Terms': termsIn.checked,
+          'Payment status': 'Card on file (test)'
+        };
+
+        await writeToAirtable(airtableFields);
+        showStep(4);
+      } catch (err) {
+        alert(err.message);
+        payBtn.disabled = false;
+      }
+    };
+  </script>
 </body>
 </html>

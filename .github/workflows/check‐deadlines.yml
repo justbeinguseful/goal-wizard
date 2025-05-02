@@ -1,15 +1,15 @@
-name: Daily Check-Deadlines & Charge
+name: Daily Check Deadlines
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'  # Run at midnight UTC daily
+  workflow_dispatch:     # Allow manual triggering
 
 jobs:
-  charge_failed_goals:
+  check-deadlines:
     runs-on: ubuntu-latest
     steps:
-      - name: Invoke Netlify check-deadlines function
+      - name: Call Netlify Function
         run: |
-          curl -X POST https://stately-sundae-b61659.netlify.app/.netlify/functions/check-deadlines \
-            -H "Content-Type: application/json"
+          curl -X POST "https://stately-sundae-b61659.netlify.app/.netlify/functions/check-deadlines" \
+          -H "Content-Type: application/json"

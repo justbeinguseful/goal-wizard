@@ -1,9 +1,9 @@
 name: Daily Check Deadlines
 
 on:
+  workflow_dispatch: {}
   schedule:
-    - cron: '0 0 * * *'  # Run at midnight UTC daily
-  workflow_dispatch:     # Allow manual triggering
+    - cron: '0 0 * * *'
 
 jobs:
   check-deadlines:

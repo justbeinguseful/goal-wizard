@@ -1,0 +1,15 @@
+name: Daily Check-Deadlines & Charge
+
+# Runs every day at 00:00 UTC
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  charge_failed_goals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke Netlify check-deadlines function
+        run: |
+          curl -X POST https://<your-site>.netlify.app/.netlify/functions/check-deadlines \
+            -H "Content-Type: application/json"

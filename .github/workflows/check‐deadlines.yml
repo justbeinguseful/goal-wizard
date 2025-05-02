@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Invoke Netlify check-deadlines function
         run: |
-          curl -X POST https://<your-site>.netlify.app/.netlify/functions/check-deadlines \
+          curl -X POST https://stately-sundae-b61659.netlify.app/.netlify/functions/check-deadlines \
             -H "Content-Type: application/json"

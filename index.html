@@ -171,27 +171,41 @@
 
       // Final submit: save card & write Airtable
       payBtn.onclick = async () => {
-        const goal      = document.getElementById('goal').value;
-        const deadline  = document.getElementById('deadline').value;
-        let stake       = document.getElementById('stake').value;
+        const goal             = document.getElementById('goal').value;
+        const deadline         = document.getElementById('deadline').value;
+        let stake              = document.getElementById('stake').value;
         if (stake === 'custom') stake = document.getElementById('stake-custom').value;
-        const supervisorEmail = document.getElementById('refereeEmail').value;
-        const refereeName     = supervisorEmail.split('@')[0];
-        const email     = document.getElementById('userEmail').value;
-        const name      = email.split('@')[0];
-        const termsChecked = document.getElementById('terms').checked;
-        const cardName  = document.getElementById('cardName').value;
-        const zip       = document.getElementById('zip').value;
+        const supervisorEmail  = document.getElementById('refereeEmail').value;
+        const refereeName      = supervisorEmail.split('@')[0];
+        const email            = document.getElementById('userEmail').value;
+        const name             = email.split('@')[0];
+        const termsChecked     = document.getElementById('terms').checked;
+        const cardName         = document.getElementById('cardName').value;
+        const zip              = document.getElementById('zip').value;
 
         try {
           // 1️⃣ Create SetupIntent
-          const siRes = await createSetupIntent({ goal, deadline, stake, supervisorEmail, refereeName, email, name, termsChecked, cardName, zip });
+          const siRes = await createSetupIntent({
+            goal,
+            deadline,
+            stake,
+            supervisorEmail,
+            refereeName,
+            email,
+            name,
+            termsChecked,
+            cardName,
+            zip
+          });
           if (!siRes.ok) throw new Error(`SetupIntent failed: ${await siRes.text()}`);
-          const { clientSecret } = await siRes.json();
+          const { clientSecret, customerId } = await siRes.json(); // Get customerId from response
 
           // 2️⃣ Confirm Card Setup
           const { error } = await stripe.confirmCardSetup(clientSecret, {
-            payment_method: { card, billing_details: { name: cardName, address: { postal_code: zip } } }
+            payment_method: {
+              card,
+              billing_details: { name: cardName, address: { postal_code: zip } }
+            }
           });
           if (error) throw error;
 
@@ -205,7 +219,8 @@
             refereeName,
             supervisor: supervisorEmail,
             termsChecked,
-            paymentStatus: 'Card on file (test)'
+            paymentStatus: 'Card on file (test)',
+            customerId  // Add customerId to Airtable record
           });
           if (!arRes.ok) throw new Error(`Airtable save failed: ${await arRes.text()}`);
 
@@ -216,6 +231,7 @@
           alert(`Error: ${err.message}`);
         }
       };
+
     })();
   </script>
 </body>

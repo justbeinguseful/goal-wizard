@@ -183,6 +183,9 @@
         const cardName         = document.getElementById('cardName').value;
         const zip              = document.getElementById('zip').value;
 
+        // Prevent double-clicks while confirmCardSetup is in-flight
+        payBtn.disabled = true;
+
         try {
           // 1️⃣ Create SetupIntent
           const siRes = await createSetupIntent({
@@ -198,7 +201,7 @@
             zip
           });
           if (!siRes.ok) throw new Error(`SetupIntent failed: ${await siRes.text()}`);
-          const { clientSecret, customerId } = await siRes.json(); // Get customerId from response
+          const { clientSecret, customerId } = await siRes.json();
 
           // 2️⃣ Confirm Card Setup
           const { error } = await stripe.confirmCardSetup(clientSecret, {
@@ -220,7 +223,7 @@
             supervisor: supervisorEmail,
             termsChecked,
             paymentStatus: 'Card on file (test)',
-            customerId  // Add customerId to Airtable record
+            customerId
           });
           if (!arRes.ok) throw new Error(`Airtable save failed: ${await arRes.text()}`);
 
@@ -228,6 +231,8 @@
           showStep(1);
         } catch (err) {
           console.error(err);
+          // Re-enable button so they can try again
+          payBtn.disabled = false;
           alert(`Error: ${err.message}`);
         }
       };

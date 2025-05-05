@@ -1,3 +1,4 @@
+// netlify/functions/create-setup-intent.js
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.handler = async (event) => {
@@ -8,21 +9,36 @@ exports.handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const intent = await stripe.setupIntents.create({
+    const { email, name } = body;
+    
+    // Find or create the Stripe Customer
+    const existing = await stripe.customers.list({ email, limit: 1 });
+    const customer = existing.data.length
+      ? existing.data[0]
+      : await stripe.customers.create({ email, name });
+
+    // Create a SetupIntent for that customer
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customer.id,
       payment_method_types: ['card'],
-      metadata: body        // store goal metadata on the intent
+      usage: 'off_session',
+      metadata: body
     });
+
     return {
       statusCode: 200,
       headers: cors(),
-      body: JSON.stringify({ clientSecret: intent.client_secret })
+      body: JSON.stringify({ 
+        clientSecret: setupIntent.client_secret,
+        customerId: customer.id 
+      })
     };
   } catch (err) {
     return { statusCode: 500, headers: cors(), body: JSON.stringify({ error: err.message }) };
   }
 };
 
-function cors () {
+function cors() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',

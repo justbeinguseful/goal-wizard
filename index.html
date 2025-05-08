@@ -12,17 +12,17 @@
     .step { display: none; }
     .step.active { display: block; }
     h2 { font-size: 1.5em; margin-bottom: 0.5em; text-align: center; }
-    input, select { width: 100%; padding: 0.75em; font-size: 1em; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 4px; }
-    .checkbox-field { display: flex; align-items: center; margin-bottom: 1em; }
+    input, select { width: 100%; padding: 0.75em; font-size: 1em; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+    .checkbox-field { display: flex; align-items: center; justify-content: center; margin-bottom: 1em; }
     .checkbox-field input { width: auto; margin: 0; }
-    .checkbox-field label { margin-left: 0.5em; font-size: 0.9em; width: 100%; }
-    .buttons { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 1.5em; }
-    .back-arrow { flex: 0.15; font-size: 1.2em; padding: 0.5em; color: #666; border: none; background: transparent; cursor: pointer; }
-    button { flex: 1; padding: 0.75em; font-size: 1em; background: #E60303; color: #fff; border: none; cursor: pointer; border-radius: 4px; }
+    .checkbox-field label { margin-left: 0.5em; font-size: 0.9em; text-align: left; }
+    .buttons { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5em; }
+    .back-arrow { align-self: center; font-size: 1.2em; padding: 0.5em; color: #666; border: none; background: transparent; cursor: pointer; }
+    button { padding: 0.75em; font-size: 1em; background: #E60303; color: #fff; border: none; cursor: pointer; border-radius: 4px; width: 100%; }
     button[disabled] { opacity: 0.6; cursor: not-allowed; }
-    #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 4px; }
+    #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1em; }
     #card-errors { color: red; margin-top: 0.5em; font-size: 0.9em; }
-    .error-message { color: red; font-size: 0.9em; margin-top: -0.5em; margin-bottom: 1em; display: none; }
+    .error-message { color: red; font-size: 0.9em; margin-top: -0.5em; margin-bottom: 1em; display: none; text-align: center; }
     @media (max-width: 480px) { #wizard { margin: 10px; } button { font-size: 0.9em; } }
   </style>
 </head>
@@ -36,6 +36,7 @@
       <div id="goal-error" class="error-message">Please enter your goal</div>
       <div class="buttons">
         <button id="next-1">Let’s go!</button>
+        <button class="back-arrow" id="back-1">←</button>
       </div>
     </div>
 
@@ -45,8 +46,8 @@
       <input id="deadline" type="date" />
       <div id="deadline-error" class="error-message">Please select a date within the next 90 days</div>
       <div class="buttons">
-        <button class="back-arrow" id="back-2">←</button>
         <button id="next-2">Set deadline</button>
+        <button class="back-arrow" id="back-2">←</button>
       </div>
     </div>
 
@@ -64,8 +65,8 @@
       <input id="stake-custom" placeholder="Enter custom amount" type="number" style="display:none;" />
       <div id="stake-error" class="error-message">Please enter a valid amount</div>
       <div class="buttons">
-        <button class="back-arrow" id="back-3">←</button>
         <button id="next-3">Set Stake</button>
+        <button class="back-arrow" id="back-3">←</button>
       </div>
     </div>
 
@@ -75,8 +76,8 @@
       <input id="refereeEmail" placeholder="Referee’s email" type="email" />
       <div id="referee-error" class="error-message">Please enter a valid email address</div>
       <div class="buttons">
-        <button class="back-arrow" id="back-4">←</button>
         <button id="next-4">Set Referee</button>
+        <button class="back-arrow" id="back-4">←</button>
       </div>
     </div>
 
@@ -91,8 +92,8 @@
       </div>
       <div id="terms-error" class="error-message">You must accept the Terms & Conditions</div>
       <div class="buttons">
-        <button class="back-arrow" id="back-5">←</button>
         <button id="next-5">Continue</button>
+        <button class="back-arrow" id="back-5">←</button>
       </div>
     </div>
 
@@ -101,13 +102,13 @@
       <h2>You <strong>only</strong> pay if you fail your goal</h2>
       <input id="cardName" placeholder="Name on card" />
       <div id="cardname-error" class="error-message">Please enter the name on your card</div>
+      <div id="card-element"></div>
       <input id="zip" placeholder="ZIP / Postal code" />
       <div id="zip-error" class="error-message">Please enter your ZIP/postal code</div>
-      <div id="card-element"></div>
       <div id="card-errors"></div>
       <div class="buttons">
-        <button class="back-arrow" id="back-6">←</button>
         <button id="payBtn" disabled>Save Card</button>
+        <button class="back-arrow" id="back-6">←</button>
       </div>
     </div>
 
@@ -115,148 +116,128 @@
 
   <script>
     (async () => {
-      // Load publishable key from Netlify Function
       const res = await fetch('/.netlify/functions/get-publishable-key');
-      if (!res.ok) {
-        console.error('Could not load publishable key', await res.text());
-        return;
-      }
+      if (!res.ok) return console.error('Could not load publishable key');
       const { publishableKey } = await res.json();
-
       const stripe = Stripe(publishableKey);
-      const wizard = document.getElementById('wizard');
-      const steps = wizard.querySelectorAll('.step');
 
       function showStep(n) {
-        steps.forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById(`step-${n}`).classList.add('active');
       }
 
       // Validation functions
       function validateGoal() {
-        const el = document.getElementById('goal');
+        const val = document.getElementById('goal').value.trim();
         const err = document.getElementById('goal-error');
-        if (!el.value.trim()) { err.style.display='block'; return false; }
-        err.style.display='none'; return true;
+        if (!val) { err.style.display = 'block'; return false; }
+        err.style.display = 'none'; return true;
       }
       function validateDeadline() {
         const el = document.getElementById('deadline');
         const err = document.getElementById('deadline-error');
-        if (!el.value) { err.style.display='block'; return false; }
-        const date = new Date(el.value);
-        const now  = new Date();
-        const max  = new Date(); max.setDate(now.getDate()+90);
-        if (date < now || date > max) { err.style.display='block'; return false; }
-        err.style.display='none'; return true;
+        if (!el.value) { err.style.display = 'block'; return false; }
+        const date = new Date(el.value),
+              now  = new Date(),
+              max  = new Date(); max.setDate(now.getDate() + 90);
+        if (date < now || date > max) { err.style.display = 'block'; return false; }
+        err.style.display = 'none'; return true;
       }
       function validateStake() {
         const sel = document.getElementById('stake');
-        const custom = document.getElementById('stake-custom');
+        const custom = document.getElementById('stake-custom').value;
         const err = document.getElementById('stake-error');
-        if (sel.value==='custom') {
-          if (!custom.value || custom.value<=0) { err.style.display='block'; return false; }
-        }
-        err.style.display='none'; return true;
+        if (sel.value === 'custom' && (!custom || custom <= 0)) { err.style.display = 'block'; return false; }
+        err.style.display = 'none'; return true;
       }
       function validateEmail(id) {
-        const el = document.getElementById(id);
-        const err = document.getElementById(id==='userEmail'?'email-error':'referee-error');
+        const val = document.getElementById(id).value.trim();
+        const err = document.getElementById(id === 'userEmail' ? 'email-error': 'referee-error');
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!re.test(el.value)) { err.style.display='block'; return false; }
-        err.style.display='none'; return true;
+        if (!re.test(val)) { err.style.display = 'block'; return false; }
+        err.style.display = 'none'; return true;
       }
       function validateTerms() {
-        const el = document.getElementById('terms');
-        const err= document.getElementById('terms-error');
-        if (!el.checked) { err.style.display='block'; return false; }
-        err.style.display='none'; return true;
+        const chk = document.getElementById('terms').checked;
+        const err = document.getElementById('terms-error');
+        if (!chk) { err.style.display = 'block'; return false; }
+        err.style.display = 'none'; return true;
       }
       function validateCardName() {
-        const el = document.getElementById('cardName');
-        const err= document.getElementById('cardname-error');
-        if (!el.value.trim()) { err.style.display='block'; return false; }
-        err.style.display='none'; return true;
+        const val = document.getElementById('cardName').value.trim();
+        const err = document.getElementById('cardname-error');
+        if (!val) { err.style.display = 'block'; return false; }
+        err.style.display = 'none'; return true;
       }
       function validateZip() {
-        const el = document.getElementById('zip');
-        const err= document.getElementById('zip-error');
-        if (!el.value.trim()) { err.style.display='block'; return false; }
-        err.style.display='none'; return true;
+        const val = document.getElementById('zip').value.trim();
+        const err = document.getElementById('zip-error');
+        if (!val) { err.style.display = 'block'; return false; }
+        err.style.display = 'none'; return true;
       }
+      function enterKey(e, fn) { if (e.key === 'Enter') { e.preventDefault(); fn(); }}
 
-      function enterHandler(e, fn) {
-        if (e.key==='Enter') { e.preventDefault(); fn(); }
-      }
-
-      // Navigation logic
+      // Navigation
       document.getElementById('next-1').onclick = () => validateGoal() && showStep(2);
-      document.getElementById('goal').addEventListener('keypress', e=>enterHandler(e, ()=>document.getElementById('next-1').click()));
-      document.getElementById('back-2').onclick = ()=>showStep(1);
-      document.getElementById('next-2').onclick = ()=>validateDeadline() && showStep(3);
-      document.getElementById('deadline').addEventListener('keypress', e=>enterHandler(e, ()=>document.getElementById('next-2').click()));
+      document.getElementById('goal').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-1').click()));
+      document.getElementById('back-1').onclick = () => showStep(1);
+
+      document.getElementById('next-2').onclick = () => validateDeadline() && showStep(3);
+      document.getElementById('deadline').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-2').click()));
+      document.getElementById('back-2').onclick = () => showStep(1);
 
       const stakeSel = document.getElementById('stake');
-      stakeSel.onchange = ()=>{
-        document.getElementById('stake-custom').style.display = stakeSel.value==='custom'?'block':'none';
-      };
-      document.getElementById('back-3').onclick = ()=>showStep(2);
-      document.getElementById('next-3').onclick = ()=>validateStake() && showStep(4);
-      document.getElementById('stake-custom').addEventListener('keypress', e=>enterHandler(e, ()=>document.getElementById('next-3').click()));
-      document.getElementById('back-4').onclick = ()=>showStep(3);
-      document.getElementById('next-4').onclick = ()=>validateEmail('refereeEmail') && showStep(5);
-      document.getElementById('refereeEmail').addEventListener('keypress', e=>enterHandler(e, ()=>document.getElementById('next-4').click()));
-      document.getElementById('back-5').onclick = ()=>showStep(4);
-      document.getElementById('next-5').onclick = ()=>validateEmail('userEmail') && validateTerms() && showStep(6);
-      document.getElementById('userEmail').addEventListener('keypress', e=>enterHandler(e, ()=>document.getElementById('next-5').click()));
-      document.getElementById('back-6').onclick = ()=>showStep(5);
+      stakeSel.onchange = () => document.getElementById('stake-custom').style.display = stakeSel.value === 'custom' ? 'block':'none';
+      document.getElementById('next-3').onclick = () => validateStake() && showStep(4);
+      document.getElementById('stake-custom').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-3').click()));
+      document.getElementById('back-3').onclick = () => showStep(2);
 
-      // Stripe card mount
+      document.getElementById('next-4').onclick = () => validateEmail('refereeEmail') && showStep(5);
+      document.getElementById('refereeEmail').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-4').click()));
+      document.getElementById('back-4').onclick = () => showStep(3);
+
+      document.getElementById('next-5').onclick = () => validateEmail('userEmail') && validateTerms() && showStep(6);
+      document.getElementById('userEmail').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-5').click()));
+      document.getElementById('back-5').onclick = () => showStep(4);
+
+      document.getElementById('back-6').onclick = () => showStep(5);
+
+      // Stripe card
       const elements = stripe.elements();
       const card = elements.create('card', { hidePostalCode: true });
       card.mount('#card-element');
       const payBtn = document.getElementById('payBtn');
-      card.on('change', e => {
-        document.getElementById('card-errors').textContent = e.error?.message || '';
-        payBtn.disabled = !e.complete;
-      });
+      card.on('change', e => { document.getElementById('card-errors').textContent = e.error?.message||''; payBtn.disabled = !e.complete; });
 
-      const ORIGIN = location.origin.includes('netlify.app') ? location.origin : 'https://stately-sundae-b61659.netlify.app';
-      async function createSetupIntent(payload) {
-        return fetch(`${ORIGIN}/.netlify/functions/create-setup-intent`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-      }
-      async function writeToAirtable(payload) {
-        return fetch(`${ORIGIN}/.netlify/functions/submit-goal`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-      }
+      const ORIGIN = location.origin.includes('netlify.app')?location.origin:'https://stately-sundae-b61659.netlify.app';
+      async function createSetupIntent(payload) { return fetch(`${ORIGIN}/.netlify/functions/create-setup-intent`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }
+      async function writeToAirtable(payload) { return fetch(`${ORIGIN}/.netlify/functions/submit-goal`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }
 
       payBtn.onclick = async () => {
-        if (!validateCardName() || !validateZip()) return;
-        const data = {
-          goal: document.getElementById('goal').value,
-          deadline: document.getElementById('deadline').value,
-          stake: stakeSel.value==='custom'?document.getElementById('stake-custom').value:stakeSel.value,
-          supervisorEmail: document.getElementById('refereeEmail').value,
-          refereeName: document.getElementById('refereeEmail').value.split('@')[0],
-          email: document.getElementById('userEmail').value,
-          name: document.getElementById('userEmail').value.split('@')[0],
-          termsChecked: document.getElementById('terms').checked,
-          cardName: document.getElementById('cardName').value,
-          zip: document.getElementById('zip').value
+        if (!validateCardName()||!validateZip()) return;
+        const data={
+          goal:document.getElementById('goal').value,
+          deadline:document.getElementById('deadline').value,
+          stake:stakeSel.value==='custom'?document.getElementById('stake-custom').value:stakeSel.value,
+          supervisorEmail:document.getElementById('refereeEmail').value,
+          refereeName:document.getElementById('refereeEmail').value.split('@')[0],
+          email:document.getElementById('userEmail').value,
+          name:document.getElementById('userEmail').value.split('@')[0],
+          termsChecked:document.getElementById('terms').checked,
+          cardName:document.getElementById('cardName').value,
+          zip:document.getElementById('zip').value
         };
-        payBtn.disabled = true;
+        payBtn.disabled=true;
         try {
-          const siRes = await createSetupIntent(data);
+          const siRes=await createSetupIntent(data);
           if (!siRes.ok) throw new Error(await siRes.text());
-          const { clientSecret, customerId } = await siRes.json();
-          const { error } = await stripe.confirmCardSetup(clientSecret, { payment_method:{ card, billing_details:{ name:data.cardName, address:{ postal_code:data.zip } } } });
-          if (error) throw error;
-          const arRes = await writeToAirtable({ ...data, paymentStatus:'Card on file (test)', customerId });
-          if (!arRes.ok) throw new Error(await arRes.text());
-          window.location.href = 'https://motivationguaranteed.com/#success';
-        } catch (err) {
-          console.error(err);
-          payBtn.disabled = false;
-          alert(`Error: ${err.message}`);
-        }
+          const {clientSecret,customerId}=await siRes.json();
+          const {error}=await stripe.confirmCardSetup(clientSecret,{payment_method:{card,billing_details:{name:data.cardName,address:{postal_code:data.zip}}}});
+          if(error) throw error;
+          const arRes=await writeToAirtable({...data,paymentStatus:'Card on file (test)',customerId});
+          if(!arRes.ok) throw new Error(await arRes.text());
+          window.location.href='https://motivationguaranteed.com/#success';
+        }catch(err){console.error(err);payBtn.disabled=false;alert(`Error: ${err.message}`);}
       };
     })();
   </script>

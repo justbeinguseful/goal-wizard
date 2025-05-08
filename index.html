@@ -7,23 +7,27 @@
   <script src="https://js.stripe.com/v3/"></script>
   <style>
     * { box-sizing: border-box; }
-    body { 
+    html, body { 
       margin: 0; 
+      padding: 0;
+      height: 100%; 
       font-family: sans-serif; 
       background: transparent; 
-      width: 100%;
+    }
+    body {
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
+      padding: 20px 0;
     }
     #wizard { 
       width: 100%;
       max-width: 400px; 
-      margin: 0 auto; 
-      padding: 20px;
       background-color: white;
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin: 0 auto;
     }
     .step { display: none; }
     .step.active { display: block; }
@@ -42,31 +46,47 @@
       border-radius: 2px; 
     }
     
-    /* Connected input and button */
+    /* Form elements */
+    input, select { 
+      width: 100%; 
+      padding: 0.75em; 
+      font-size: 1.2em;
+      border: 1px solid #ccc; 
+      border-radius: 4px;
+      text-align: center;
+      margin-bottom: 1em;
+    }
+    
+    /* For Step 3 stake layout fix */
+    .stake-container {
+      margin-bottom: 1em;
+    }
+    #stake-custom {
+      display: none;
+      margin-bottom: 1em;
+    }
+    
+    /* Connected input and button for other steps */
     .input-group { 
       display: flex; 
       flex-direction: column; 
       margin-bottom: 1em; 
-      width: 100%;
-    }
-    input, select { 
-      width: 100%; 
-      padding: 0.75em; 
-      font-size: 1.2em; /* Increased font size */
-      border: 1px solid #ccc; 
-      text-align: center; 
     }
     .input-group input {
       border-radius: 4px 4px 0 0;
       border-bottom: none;
       margin-bottom: 0;
     }
+    .input-group button {
+      border-radius: 0 0 4px 4px;
+    }
+    
+    /* Checkbox styling */
     .checkbox-field { 
       display: flex; 
       align-items: center; 
       justify-content: center; 
       margin-bottom: 1em; 
-      width: 100%;
     }
     .checkbox-field input { 
       width: auto; 
@@ -78,14 +98,16 @@
       text-align: left; 
     }
     
+    /* Buttons container */
     .buttons { 
       display: flex; 
       flex-direction: column; 
       align-items: center; 
       gap: 8px; 
       margin-bottom: 1em; 
-      width: 100%;
     }
+    
+    /* Back button */
     .back-arrow { 
       font-size: 1em; 
       padding: 0.5em; 
@@ -100,23 +122,20 @@
     }
     .back-arrow:hover { color: #999; }
     
+    /* Main button styling */
     button { 
       padding: 0.75em; 
-      font-size: 1.2em; /* Increased font size */
+      font-size: 1.2em;
       background: #E60303; 
       color: #fff; 
       border: none; 
       cursor: pointer; 
       width: 100%; 
-    }
-    .input-group button {
-      border-radius: 0 0 4px 4px;
-    }
-    button:not(.input-group button):not(.back-arrow) {
       border-radius: 4px;
     }
     button[disabled] { opacity: 0.6; cursor: not-allowed; }
     
+    /* Stripe element */
     #card-element { 
       padding: 12px; 
       border: 1px solid #ccc; 
@@ -164,10 +183,6 @@
       </div>
       
       <div id="goal-error" class="error-message">Please enter your goal</div>
-      
-      <div class="buttons">
-        <button class="back-arrow" id="back-1">← Back</button>
-      </div>
     </div>
 
     <!-- Step 2: Deadline -->
@@ -198,7 +213,7 @@
       
       <h2>How much to pay if you fail</h2>
       
-      <div class="input-group">
+      <div class="stake-container">
         <select id="stake">
           <option value="25">$25</option>
           <option value="50">$50</option>
@@ -207,10 +222,12 @@
           <option value="1500">$1,500</option>
           <option value="custom">Custom…</option>
         </select>
+        
+        <input id="stake-custom" placeholder="Enter custom amount" type="number" />
+        
         <button id="next-3">Set Stake</button>
       </div>
       
-      <input id="stake-custom" placeholder="Enter custom amount" type="number" style="display:none; border-radius: 4px; margin-top: 0.5em; margin-bottom: 0.5em;" />
       <div id="stake-error" class="error-message">Please enter a valid amount</div>
       
       <div class="buttons">
@@ -272,18 +289,19 @@
       
       <h2>You <strong>only</strong> pay if you fail your goal</h2>
       
-      <input id="cardName" placeholder="Name on card" style="border-radius: 4px; margin-bottom: 1em;" />
+      <input id="cardName" placeholder="Name on card" />
       <div id="cardname-error" class="error-message">Please enter the name on your card</div>
       
       <div id="card-element"></div>
       
-      <input id="zip" placeholder="ZIP / Postal code" style="border-radius: 4px;" />
+      <input id="zip" placeholder="ZIP / Postal code" />
       <div id="zip-error" class="error-message">Please enter your ZIP/postal code</div>
       
       <div id="card-errors"></div>
       
+      <button id="payBtn" disabled>Save Card</button>
+      
       <div class="buttons">
-        <button id="payBtn" disabled>Save Card</button>
         <button class="back-arrow" id="back-6">← Back</button>
       </div>
     </div>
@@ -356,7 +374,6 @@
       // Navigation
       document.getElementById('next-1').onclick = () => validateGoal() && showStep(2);
       document.getElementById('goal').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-1').click()));
-      document.getElementById('back-1').onclick = () => showStep(1);
 
       document.getElementById('next-2').onclick = () => validateDeadline() && showStep(3);
       document.getElementById('deadline').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-2').click()));
@@ -412,7 +429,8 @@
           if(error) throw error;
           const arRes=await writeToAirtable({...data,paymentStatus:'Card on file (test)',customerId});
           if(!arRes.ok) throw new Error(await arRes.text());
-          window.location.href='https://motivationguaranteed.com/#success';
+          
+          window.location.href = 'https://motivationguaranteed.com/#success';
         }catch(err){console.error(err);payBtn.disabled=false;alert(`Error: ${err.message}`);}
       };
     })();

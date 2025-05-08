@@ -12,18 +12,77 @@
     .step { display: none; }
     .step.active { display: block; }
     h2 { font-size: 1.5em; margin-bottom: 0.5em; text-align: center; }
-    input, select { width: 100%; padding: 0.75em; font-size: 1em; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+    
+    /* Progress bar */
+    .progress-bar { 
+      height: 4px; 
+      background-color: #f0f0f0; 
+      border-radius: 2px; 
+      margin-bottom: 1em; 
+    }
+    .progress-bar-inner { 
+      height: 100%; 
+      background-color: #E60303; 
+      border-radius: 2px; 
+    }
+    
+    /* Connected input and button */
+    .input-group { 
+      display: flex; 
+      flex-direction: column; 
+      margin-bottom: 1em; 
+    }
+    input, select { 
+      width: 100%; 
+      padding: 0.75em; 
+      font-size: 1.2em; /* Increased font size */
+      border: 1px solid #ccc; 
+      text-align: center; 
+    }
+    .input-group input {
+      border-radius: 4px 4px 0 0;
+      border-bottom: none;
+      margin-bottom: 0;
+    }
     .checkbox-field { display: flex; align-items: center; justify-content: center; margin-bottom: 1em; }
     .checkbox-field input { width: auto; margin: 0; }
     .checkbox-field label { margin-left: 0.5em; font-size: 0.9em; text-align: left; }
-    .buttons { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5em; }
-    .back-arrow { align-self: center; font-size: 1.2em; padding: 0.5em; color: #666; border: none; background: transparent; cursor: pointer; }
-    button { padding: 0.75em; font-size: 1em; background: #E60303; color: #fff; border: none; cursor: pointer; border-radius: 4px; width: 100%; }
+    
+    .buttons { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 1.5em; }
+    .back-arrow { 
+      font-size: 1em; 
+      padding: 0.5em; 
+      color: #ccc; 
+      border: none; 
+      background: transparent; 
+      cursor: pointer; 
+      display: flex;
+      align-items: center;
+    }
+    .back-arrow:hover { color: #999; }
+    
+    button { 
+      padding: 0.75em; 
+      font-size: 1.2em; /* Increased font size */
+      background: #E60303; 
+      color: #fff; 
+      border: none; 
+      cursor: pointer; 
+      width: 100%; 
+    }
+    .input-group button {
+      border-radius: 0 0 4px 4px;
+    }
+    button:not(.input-group button) {
+      border-radius: 4px;
+    }
     button[disabled] { opacity: 0.6; cursor: not-allowed; }
+    
     #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1em; }
     #card-errors { color: red; margin-top: 0.5em; font-size: 0.9em; }
-    .error-message { color: red; font-size: 0.9em; margin-top: -0.5em; margin-bottom: 1em; display: none; text-align: center; }
-    @media (max-width: 480px) { #wizard { margin: 10px; } button { font-size: 0.9em; } }
+    .error-message { color: red; font-size: 0.9em; margin-top: 0.5em; margin-bottom: 1em; display: none; text-align: center; }
+    
+    @media (max-width: 480px) { #wizard { margin: 10px; } }
   </style>
 </head>
 <body>
@@ -31,84 +90,139 @@
 
     <!-- Step 1: Goal -->
     <div class="step active" id="step-1">
+      <div class="progress-bar">
+        <div class="progress-bar-inner" style="width: 16.67%;"></div>
+      </div>
+      
       <h2>What is your goal?</h2>
-      <input id="goal" placeholder="Enter your goal" />
+      
+      <div class="input-group">
+        <input id="goal" placeholder="Enter your goal" />
+        <button id="next-1">Let's go!</button>
+      </div>
+      
       <div id="goal-error" class="error-message">Please enter your goal</div>
+      
       <div class="buttons">
-        <button id="next-1">Let’s go!</button>
-        <button class="back-arrow" id="back-1">←</button>
+        <button class="back-arrow" id="back-1">← Back</button>
       </div>
     </div>
 
     <!-- Step 2: Deadline -->
     <div class="step" id="step-2">
+      <div class="progress-bar">
+        <div class="progress-bar-inner" style="width: 33.33%;"></div>
+      </div>
+      
       <h2>When</h2>
-      <input id="deadline" type="date" />
-      <div id="deadline-error" class="error-message">Please select a date within the next 90 days</div>
-      <div class="buttons">
+      
+      <div class="input-group">
+        <input id="deadline" type="date" />
         <button id="next-2">Set deadline</button>
-        <button class="back-arrow" id="back-2">←</button>
+      </div>
+      
+      <div id="deadline-error" class="error-message">Please select a date within the next 90 days</div>
+      
+      <div class="buttons">
+        <button class="back-arrow" id="back-2">← Back</button>
       </div>
     </div>
 
     <!-- Step 3: Stake -->
     <div class="step" id="step-3">
+      <div class="progress-bar">
+        <div class="progress-bar-inner" style="width: 50%;"></div>
+      </div>
+      
       <h2>How much to pay if you fail</h2>
-      <select id="stake">
-        <option value="25">$25</option>
-        <option value="50">$50</option>
-        <option value="100" selected>$100</option>
-        <option value="500">$500</option>
-        <option value="1500">$1,500</option>
-        <option value="custom">Custom…</option>
-      </select>
-      <input id="stake-custom" placeholder="Enter custom amount" type="number" style="display:none;" />
-      <div id="stake-error" class="error-message">Please enter a valid amount</div>
-      <div class="buttons">
+      
+      <div class="input-group">
+        <select id="stake">
+          <option value="25">$25</option>
+          <option value="50">$50</option>
+          <option value="100" selected>$100</option>
+          <option value="500">$500</option>
+          <option value="1500">$1,500</option>
+          <option value="custom">Custom…</option>
+        </select>
         <button id="next-3">Set Stake</button>
-        <button class="back-arrow" id="back-3">←</button>
+      </div>
+      
+      <input id="stake-custom" placeholder="Enter custom amount" type="number" style="display:none; border-radius: 4px; margin-top: 0.5em; margin-bottom: 0.5em;" />
+      <div id="stake-error" class="error-message">Please enter a valid amount</div>
+      
+      <div class="buttons">
+        <button class="back-arrow" id="back-3">← Back</button>
       </div>
     </div>
 
     <!-- Step 4: Referee -->
     <div class="step" id="step-4">
+      <div class="progress-bar">
+        <div class="progress-bar-inner" style="width: 66.67%;"></div>
+      </div>
+      
       <h2>Who checks if you complete it?</h2>
-      <input id="refereeEmail" placeholder="Referee’s email" type="email" />
-      <div id="referee-error" class="error-message">Please enter a valid email address</div>
-      <div class="buttons">
+      
+      <div class="input-group">
+        <input id="refereeEmail" placeholder="Referee's email" type="email" />
         <button id="next-4">Set Referee</button>
-        <button class="back-arrow" id="back-4">←</button>
+      </div>
+      
+      <div id="referee-error" class="error-message">Please enter a valid email address</div>
+      
+      <div class="buttons">
+        <button class="back-arrow" id="back-4">← Back</button>
       </div>
     </div>
 
     <!-- Step 5: Email & Terms -->
     <div class="step" id="step-5">
+      <div class="progress-bar">
+        <div class="progress-bar-inner" style="width: 83.33%;"></div>
+      </div>
+      
       <h2>How do we contact you?</h2>
-      <input id="userEmail" placeholder="Your email" type="email" />
+      
+      <div class="input-group">
+        <input id="userEmail" placeholder="Your email" type="email" />
+        <button id="next-5">Continue</button>
+      </div>
+      
       <div id="email-error" class="error-message">Please enter a valid email address</div>
+      
       <div class="checkbox-field">
         <input id="terms" type="checkbox" />
         <label for="terms">I accept the Terms & Conditions</label>
       </div>
       <div id="terms-error" class="error-message">You must accept the Terms & Conditions</div>
+      
       <div class="buttons">
-        <button id="next-5">Continue</button>
-        <button class="back-arrow" id="back-5">←</button>
+        <button class="back-arrow" id="back-5">← Back</button>
       </div>
     </div>
 
     <!-- Step 6: Payment -->
     <div class="step" id="step-6">
+      <div class="progress-bar">
+        <div class="progress-bar-inner" style="width: 100%;"></div>
+      </div>
+      
       <h2>You <strong>only</strong> pay if you fail your goal</h2>
-      <input id="cardName" placeholder="Name on card" />
+      
+      <input id="cardName" placeholder="Name on card" style="border-radius: 4px; margin-bottom: 1em;" />
       <div id="cardname-error" class="error-message">Please enter the name on your card</div>
+      
       <div id="card-element"></div>
-      <input id="zip" placeholder="ZIP / Postal code" />
+      
+      <input id="zip" placeholder="ZIP / Postal code" style="border-radius: 4px;" />
       <div id="zip-error" class="error-message">Please enter your ZIP/postal code</div>
+      
       <div id="card-errors"></div>
+      
       <div class="buttons">
         <button id="payBtn" disabled>Save Card</button>
-        <button class="back-arrow" id="back-6">←</button>
+        <button class="back-arrow" id="back-6">← Back</button>
       </div>
     </div>
 

@@ -7,8 +7,24 @@
   <script src="https://js.stripe.com/v3/"></script>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: sans-serif; background: transparent; }
-    #wizard { max-width: 400px; margin: 20px auto; padding: 0 10px; }
+    body { 
+      margin: 0; 
+      font-family: sans-serif; 
+      background: transparent; 
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #wizard { 
+      width: 100%;
+      max-width: 400px; 
+      margin: 0 auto; 
+      padding: 20px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
     .step { display: none; }
     .step.active { display: block; }
     h2 { font-size: 1.5em; margin-bottom: 0.5em; text-align: center; }
@@ -31,6 +47,7 @@
       display: flex; 
       flex-direction: column; 
       margin-bottom: 1em; 
+      width: 100%;
     }
     input, select { 
       width: 100%; 
@@ -44,11 +61,31 @@
       border-bottom: none;
       margin-bottom: 0;
     }
-    .checkbox-field { display: flex; align-items: center; justify-content: center; margin-bottom: 1em; }
-    .checkbox-field input { width: auto; margin: 0; }
-    .checkbox-field label { margin-left: 0.5em; font-size: 0.9em; text-align: left; }
+    .checkbox-field { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      margin-bottom: 1em; 
+      width: 100%;
+    }
+    .checkbox-field input { 
+      width: auto; 
+      margin: 0; 
+    }
+    .checkbox-field label { 
+      margin-left: 0.5em; 
+      font-size: 0.9em; 
+      text-align: left; 
+    }
     
-    .buttons { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 1.5em; }
+    .buttons { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 8px; 
+      margin-bottom: 1em; 
+      width: 100%;
+    }
     .back-arrow { 
       font-size: 1em; 
       padding: 0.5em; 
@@ -58,6 +95,8 @@
       cursor: pointer; 
       display: flex;
       align-items: center;
+      justify-content: center;
+      width: auto;
     }
     .back-arrow:hover { color: #999; }
     
@@ -73,16 +112,39 @@
     .input-group button {
       border-radius: 0 0 4px 4px;
     }
-    button:not(.input-group button) {
+    button:not(.input-group button):not(.back-arrow) {
       border-radius: 4px;
     }
     button[disabled] { opacity: 0.6; cursor: not-allowed; }
     
-    #card-element { padding: 12px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1em; }
-    #card-errors { color: red; margin-top: 0.5em; font-size: 0.9em; }
-    .error-message { color: red; font-size: 0.9em; margin-top: 0.5em; margin-bottom: 1em; display: none; text-align: center; }
+    #card-element { 
+      padding: 12px; 
+      border: 1px solid #ccc; 
+      border-radius: 4px; 
+      margin-bottom: 1em; 
+      background: white;
+    }
+    #card-errors { 
+      color: red; 
+      margin-top: 0.5em; 
+      font-size: 0.9em; 
+      text-align: center;
+    }
+    .error-message { 
+      color: red; 
+      font-size: 0.9em; 
+      margin-top: 0.5em; 
+      margin-bottom: 1em; 
+      display: none; 
+      text-align: center; 
+    }
     
-    @media (max-width: 480px) { #wizard { margin: 10px; } }
+    @media (max-width: 480px) { 
+      #wizard { 
+        border-radius: 0;
+        box-shadow: none;
+      } 
+    }
   </style>
 </head>
 <body>

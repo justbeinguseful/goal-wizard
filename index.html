@@ -3,402 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Goal Wizard + Stripe & Airtable</title>
-  <!-- Add Google Fonts for a more professional look -->
+  <title>Goal Wizard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://js.stripe.com/v3/"></script>
   <style>
     * { box-sizing: border-box; }
-    html, body { 
-      margin: 0; 
-      padding: 0;
-      height: 100%; 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: transparent; 
-      color: #2D3748;
-      line-height: 1.5;
-    }
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 20px 0;
-    }
-    #wizard { 
-      width: 100%;
-      max-width: 400px; 
-      background-color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      padding: 24px;
-      margin: 0 auto;
-    }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: 'Inter', -apple-system, sans-serif; background: transparent; color: #2D3748; line-height: 1.5; }
+    body { display: flex; justify-content: center; align-items: flex-start; padding: 20px 0; }
+    #wizard { width: 100%; max-width: 400px; background-color: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 24px; margin: 0 auto; position: relative; }
     .step { display: none; }
     .step.active { display: block; }
-    h2 { 
-      font-size: 1.5em; 
-      margin-bottom: 0.75em; 
-      text-align: center; 
-      font-weight: 600;
-      color: #1A202C;
-      line-height: 1.2; /* Reduced line height for titles */
-    }
+    h2 { font-size: 1.5em; margin-bottom: 0.75em; text-align: center; font-weight: 600; color: #1A202C; line-height: 1.2; }
     
     /* Progress bar */
-    .progress-bar { 
-      height: 4px; 
-      background-color: #EDF2F7; 
-      border-radius: 2px; 
-      margin-bottom: 1.25em; 
-      overflow: hidden;
-    }
-    .progress-bar-inner { 
-      height: 100%; 
-      background-color: #E60303; 
-      border-radius: 2px; 
-      transition: width 0.3s ease;
-    }
+    .progress-bar { height: 4px; background-color: #EDF2F7; border-radius: 2px; margin-bottom: 1.25em; overflow: hidden; }
+    .progress-bar-inner { height: 100%; background-color: #E60303; border-radius: 2px; transition: width 0.3s ease; }
     
     /* Form elements */
-    input, select, button, #card-element { 
-      width: 100%; 
-      padding: 0.85em; 
-      font-size: 1rem !important; /* Consistent font size */
-      font-family: 'Inter', sans-serif;
-      border: 1px solid #E2E8F0; 
-      border-radius: 6px;
-      text-align: center;
-      margin-bottom: 1em;
-      transition: all 0.2s;
-    }
+    input, select, button, #card-element { width: 100%; padding: 0.85em; font-size: 1rem !important; font-family: 'Inter', sans-serif; border: 1px solid #E2E8F0; border-radius: 6px; text-align: center; margin-bottom: 1em; transition: all 0.2s; }
+    input[type="date"] { -webkit-appearance: none; appearance: none; position: relative; background: #fff; }
+    input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; opacity: 0.6; }
+    input:focus, select:focus { outline: none; border-color: #CBD5E0; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15); }
+    input::placeholder { color: #A0AEC0; }
     
-    /* Fix for date input on mobile */
-    input[type="date"] {
-      -webkit-appearance: none;
-      appearance: none;
-      position: relative;
-      background: #fff;
-    }
+    /* For Step 3 stake layout */
+    .stake-container { margin-bottom: 0.5em; }
+    #stake-custom { display: none; margin-bottom: 1em; }
     
-    /* Show date picker icon for all browsers */
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      cursor: pointer;
-      opacity: 0.6;
-    }
-    
-    input:focus, select:focus {
-      outline: none;
-      border-color: #CBD5E0;
-      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
-    }
-    
-    input::placeholder {
-      color: #A0AEC0;
-    }
-    
-    /* For Step 3 stake layout fix */
-    .stake-container {
-      margin-bottom: 0.5em;
-    }
-    #stake-custom {
-      display: none;
-      margin-bottom: 1em;
-    }
-    
-    /* Connected input and button for other steps */
-    .input-group { 
-      display: flex; 
-      flex-direction: column; 
-      margin-bottom: 1em; 
-    }
-    .input-group input {
-      border-radius: 6px 6px 0 0;
-      border-bottom: none;
-      margin-bottom: 0;
-    }
-    .input-group button {
-      border-radius: 0 0 6px 6px;
-    }
+    /* Connected input and button */
+    .input-group { display: flex; flex-direction: column; margin-bottom: 1em; }
+    .input-group input { border-radius: 6px 6px 0 0; border-bottom: none; margin-bottom: 0; }
+    .input-group button { border-radius: 0 0 6px 6px; }
     
     /* Small info text */
-    .info-text {
-      font-size: 0.8rem;
-      color: #718096;
-      text-align: center;
-      margin: -0.5em 0 1em;
-      line-height: 1.4;
-    }
-    .info-text a, .info-text button {
-      display: block;
-      color: #3182CE;
-      text-decoration: none;
-      font-weight: 500;
-      background: none;
-      border: none;
-      padding: 0;
-      margin-top: 0.1em;
-      cursor: pointer;
-      font-size: 0.8rem;
-      box-shadow: none;
-    }
-    .info-text a:hover, .info-text button:hover {
-      color: #2C5282;
-      text-decoration: underline;
-      background: none;
-      transform: none;
-      box-shadow: none;
-    }
+    .info-text { font-size: 0.8rem; color: #718096; text-align: center; margin: -0.5em 0 1em; line-height: 1.4; }
+    .info-text a, .info-text button { display: block; color: #3182CE; text-decoration: none; font-weight: 500; background: none; border: none; padding: 0; margin-top: 0.1em; cursor: pointer; font-size: 0.8rem; box-shadow: none; }
+    .info-text a:hover, .info-text button:hover { color: #2C5282; text-decoration: underline; background: none; transform: none; box-shadow: none; }
     
     /* Modal styling */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-content {
-      background-color: white;
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 300px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    .modal-title {
-      font-weight: 600;
-      font-size: 1.1em;
-      margin-bottom: 0.5em;
-      text-align: center;
-    }
-    .modal-text {
-      font-size: 0.9em;
-      margin-bottom: 1em;
-    }
-    .modal-actions {
-      display: flex;
-      justify-content: space-between;
-    }
-    .modal-button {
-      flex: 1;
-      margin: 0 5px;
-      padding: 0.6em;
-      font-size: 0.9em !important;
-      background: #E60303;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .modal-button.cancel {
-      background: #CBD5E0;
-      color: #4A5568;
-    }
+    .modal { display: none; position: absolute; z-index: 999; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; max-width: 350px; }
+    .modal-content { background-color: white; padding: 20px; border-radius: 10px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 1px solid #E2E8F0; }
+    .modal-title { font-weight: 600; font-size: 1.1em; margin-bottom: 0.75em; text-align: center; color: #1A202C; }
+    .modal-text { font-size: 0.9em; margin-bottom: 1.25em; text-align: center; color: #4A5568; line-height: 1.5; }
+    .modal-text strong { font-weight: 500; color: #2D3748; word-break: break-all; }
+    .modal-actions { display: flex; justify-content: space-between; gap: 10px; }
+    .modal-button { flex: 1; padding: 0.75em; font-size: 0.9em !important; border-radius: 6px; cursor: pointer; text-align: center; font-weight: 500; transition: background-color 0.2s; }
+    .modal-button.primary { background: #E60303; color: white; border: none; }
+    .modal-button.primary:hover { background: #d40000; }
+    .modal-button.cancel { background: #EDF2F7; color: #4A5568; border: 1px solid #E2E8F0; }
+    .modal-button.cancel:hover { background: #E2E8F0; }
     
-    /* Checkbox styling */
-    .checkbox-field { 
-      display: flex; 
-      align-items: center; 
-      margin-bottom: 1em; 
-      padding: 0.5em;
-    }
-    .checkbox-field:hover {
-      background-color: #F7FAFC;
-      border-radius: 6px;
-    }
-    .checkbox-field input { 
-      width: auto; 
-      margin: 0; 
-      min-width: 18px;
-      height: 18px;
-    }
-    .checkbox-field label { 
-      margin-left: 0.5em; 
-      font-size: 0.9em; 
-      text-align: left; 
-      color: #4A5568;
-    }
-    .checkbox-field label a {
-      color: #3182CE;
-      text-decoration: none;
-    }
-    .checkbox-field label a:hover {
-      color: #2C5282;
-      text-decoration: underline;
-    }
-    
-    /* Buttons container */
-    .buttons { 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      gap: 8px; 
-      margin-bottom: 1em; 
-    }
-    
-    /* Back button */
-    .back-arrow { 
-      font-size: 0.9rem;
-      padding: 0.5em; 
-      color: #A0AEC0; 
-      border: none; 
-      background: transparent; 
-      cursor: pointer; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: auto;
-      opacity: 0.8;
-      transition: all 0.2s;
-      font-weight: 500;
-    }
-    .back-arrow:hover { 
-      color: #718096;
-      opacity: 1; 
-    }
-    
-    /* Main button styling */
-    button { 
-      padding: 0.85em; 
-      font-size: 1rem !important;
-      background: #E60303; 
-      color: #fff; 
-      border: none; 
-      cursor: pointer; 
-      width: 100%; 
-      border-radius: 6px;
-      font-weight: 500;
-      letter-spacing: 0.01em;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      transition: all 0.2s;
-    }
-    button:hover:not([disabled]) {
-      background: #d40000;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    button:active:not([disabled]) {
-      transform: translateY(0);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
+    /* Buttons */
+    .buttons { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 1em; }
+    .back-arrow { font-size: 0.9rem; padding: 0.5em; color: #A0AEC0; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; width: auto; opacity: 0.8; transition: all 0.2s; font-weight: 500; }
+    .back-arrow:hover { color: #718096; opacity: 1; }
+    button { padding: 0.85em; font-size: 1rem !important; background: #E60303; color: #fff; border: none; cursor: pointer; width: 100%; border-radius: 6px; font-weight: 500; letter-spacing: 0.01em; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.2s; }
+    button:hover:not([disabled]) { background: #d40000; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    button:active:not([disabled]) { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     button[disabled] { opacity: 0.6; cursor: not-allowed; }
     
     /* Stripe element */
-    #card-element { 
-      padding: 14px; 
-      border: 1px solid #E2E8F0; 
-      border-radius: 6px; 
-      margin-bottom: 1em; 
-      background: white;
-      transition: all 0.15s ease;
-    }
-    #card-element:hover {
-      border-color: #CBD5E0;
-    }
+    #card-element { padding: 14px; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 1em; background: white; transition: all 0.15s ease; }
+    #card-element:hover { border-color: #CBD5E0; }
+    #card-errors { color: #E53E3E; margin-top: 0.5em; font-size: 0.9em; text-align: center; }
+    .error-message { color: #E53E3E; font-size: 0.9em; margin-top: 0.5em; margin-bottom: 1em; display: none; text-align: center; }
     
-    #card-errors { 
-      color: #E53E3E; 
-      margin-top: 0.5em; 
-      font-size: 0.9em; 
-      text-align: center;
-    }
-    .error-message { 
-      color: #E53E3E; 
-      font-size: 0.9em; 
-      margin-top: 0.5em; 
-      margin-bottom: 1em; 
-      display: none; 
-      text-align: center; 
-    }
-    
-    /* Security information section styling */
-    .security-info {
-      margin: 1.5em 0;
-      padding: 1em;
-      border-radius: 8px;
-      background-color: #F7FAFC;
-      border: 1px solid #EDF2F7;
-      text-align: center;
-    }
-
-    .security-badge {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.75em;
-    }
-
-    .security-badge svg {
-      color: #38A169; /* Green color for the lock icon */
-      margin-right: 0.5em;
-    }
-    
-    .security-badge img {
-      height: 20px;
-      margin-right: 0.5em;
-    }
-
-    .security-badge span {
-      font-weight: 600;
-      color: #2D3748;
-      font-size: 0.95rem;
-    }
-
-    .security-info p {
-      margin: 0.5em 0 0;
-      color: #4A5568;
-      font-size: 0.85rem;
-      line-height: 1.5;
-    }
-    
-    /* Stripe branding */
-    .powered-by-stripe {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: 0.5em;
-      margin-bottom: 1em;
-    }
-    
-    .powered-by-stripe span {
-      color: #718096;
-      font-size: 0.75rem;
-      margin-right: 0.5em;
-    }
-    
-    .powered-by-stripe img {
-      height: 25px;
-    }
-    
-    /* Save Card button styling */
-    #payBtn {
-      background-color: #E60303;
-      font-weight: 600;
-      padding: 0.9em;
-      border-radius: 6px;
-      margin: 0.75em 0;
-      transition: all 0.2s;
-    }
-
-    #payBtn:hover:not([disabled]) {
-      background-color: #d40000;
-    }
+    /* Security info and branding */
+    .security-info { margin: 1.5em 0; padding: 1em; border-radius: 8px; background-color: #F7FAFC; border: 1px solid #EDF2F7; text-align: center; }
+    .security-badge { display: flex; align-items: center; justify-content: center; margin-bottom: 0.75em; }
+    .security-badge svg { color: #38A169; margin-right: 0.5em; }
+    .security-badge span { font-weight: 600; color: #2D3748; font-size: 0.95rem; }
+    .security-info p { margin: 0.5em 0 0; color: #4A5568; font-size: 0.85rem; line-height: 1.5; }
+    .powered-by-stripe { display: flex; align-items: center; justify-content: center; margin-top: 0.5em; margin-bottom: 1em; }
+    .powered-by-stripe span { color: #718096; font-size: 0.75rem; margin-right: 0.5em; }
+    .powered-by-stripe img { height: 25px; }
     
     @media (max-width: 480px) { 
-      #wizard { 
-        border-radius: 0;
-        box-shadow: none;
-      } 
+      #wizard { border-radius: 0; box-shadow: none; } 
     }
   </style>
 </head>
@@ -407,47 +90,39 @@
   <div id="refereeModal" class="modal">
     <div class="modal-content">
       <div class="modal-title">Need a referee?</div>
-      <div class="modal-text">We can be your referee for $10. Just enter <strong>teammotivationguaranteed@gmail.com</strong> in the email field.</div>
+      <div class="modal-text">
+        We can be your referee for $10. Just enter<br>
+        <strong>teammotivationguaranteed@gmail.com</strong><br>
+        in the email field.
+      </div>
       <div class="modal-actions">
         <button class="modal-button cancel" onclick="closeModal()">Cancel</button>
-        <button class="modal-button" onclick="useTeamReferee()">Use Team</button>
+        <button class="modal-button primary" onclick="useTeamReferee()">Use Team</button>
       </div>
     </div>
   </div>
 
   <div id="wizard">
-
     <!-- Step 1: Goal -->
     <div class="step active" id="step-1">
-      <div class="progress-bar">
-        <div class="progress-bar-inner" style="width: 16.67%;"></div>
-      </div>
-      
+      <div class="progress-bar"><div class="progress-bar-inner" style="width: 16.67%;"></div></div>
       <h2>What is your goal?</h2>
-      
       <div class="input-group">
         <input id="goal" placeholder="Enter your goal" />
         <button id="next-1">Let's go!</button>
       </div>
-      
       <div id="goal-error" class="error-message">Please enter your goal</div>
     </div>
 
     <!-- Step 2: Deadline -->
     <div class="step" id="step-2">
-      <div class="progress-bar">
-        <div class="progress-bar-inner" style="width: 33.33%;"></div>
-      </div>
-      
+      <div class="progress-bar"><div class="progress-bar-inner" style="width: 33.33%;"></div></div>
       <h2>When</h2>
-      
       <div class="input-group">
         <input id="deadline" type="date" />
         <button id="next-2">Set deadline</button>
       </div>
-      
       <div id="deadline-error" class="error-message">Please select a date within the next 90 days</div>
-      
       <div class="buttons">
         <button class="back-arrow" id="back-2">← Back</button>
       </div>
@@ -455,12 +130,8 @@
 
     <!-- Step 3: Stake -->
     <div class="step" id="step-3">
-      <div class="progress-bar">
-        <div class="progress-bar-inner" style="width: 50%;"></div>
-      </div>
-      
+      <div class="progress-bar"><div class="progress-bar-inner" style="width: 50%;"></div></div>
       <h2>How much to pay if you fail</h2>
-      
       <div class="stake-container">
         <select id="stake">
           <option value="25">$25</option>
@@ -470,19 +141,14 @@
           <option value="1500">$1,500</option>
           <option value="custom">Custom…</option>
         </select>
-        
         <input id="stake-custom" placeholder="Enter custom amount" type="number" />
-        
         <button id="next-3">Set Stake</button>
       </div>
-      
       <div class="info-text">
         Adding a financial stake increases success by 500%
         <a href="https://motivationguaranteed.com/#report" target="_blank">See report</a>
       </div>
-      
       <div id="stake-error" class="error-message">Please enter a valid amount</div>
-      
       <div class="buttons">
         <button class="back-arrow" id="back-3">← Back</button>
       </div>
@@ -490,24 +156,17 @@
 
     <!-- Step 4: Referee -->
     <div class="step" id="step-4">
-      <div class="progress-bar">
-        <div class="progress-bar-inner" style="width: 66.67%;"></div>
-      </div>
-      
+      <div class="progress-bar"><div class="progress-bar-inner" style="width: 66.67%;"></div></div>
       <h2>Who checks if you complete your goal?</h2>
-      
       <div class="input-group">
         <input id="refereeEmail" placeholder="Referee's email" type="email" />
         <button id="next-4">Set Referee</button>
       </div>
-      
       <div class="info-text">
-        Adding a referee increases success by 500%
+        Adding a referee increases success by 200%
         <button id="needRefereeBtn">Need a referee?</button>
       </div>
-      
       <div id="referee-error" class="error-message">Please enter a valid email address</div>
-      
       <div class="buttons">
         <button class="back-arrow" id="back-4">← Back</button>
       </div>
@@ -515,45 +174,29 @@
 
     <!-- Step 5: Email & Terms -->
     <div class="step" id="step-5">
-      <div class="progress-bar">
-        <div class="progress-bar-inner" style="width: 83.33%;"></div>
-      </div>
-      
+      <div class="progress-bar"><div class="progress-bar-inner" style="width: 83.33%;"></div></div>
       <h2>How do we contact you?</h2>
-      
       <div class="input-group">
         <input id="userEmail" placeholder="Your email" type="email" />
         <button id="next-5">Continue</button>
       </div>
-      
       <div id="email-error" class="error-message">Please enter a valid email address</div>
-      
       <div id="terms-error" class="error-message">You must accept the Terms & Conditions</div>
-      
       <div class="buttons">
         <button class="back-arrow" id="back-5">← Back</button>
       </div>
     </div>
 
-    <!-- Step 6: Payment with enhanced trust elements -->
+    <!-- Step 6: Payment -->
     <div class="step" id="step-6">
-      <div class="progress-bar">
-        <div class="progress-bar-inner" style="width: 100%;"></div>
-      </div>
-      
+      <div class="progress-bar"><div class="progress-bar-inner" style="width: 100%;"></div></div>
       <h2>You <strong>only</strong> pay if you fail your goal</h2>
-      
       <input id="cardName" placeholder="Name on card" />
       <div id="cardname-error" class="error-message">Please enter the name on your card</div>
-      
       <div id="card-element"></div>
-      
       <input id="zip" placeholder="ZIP / Postal code" />
       <div id="zip-error" class="error-message">Please enter your ZIP/postal code</div>
-      
       <div id="card-errors"></div>
-      
-      <!-- Security reassurance section -->
       <div class="security-info">
         <div class="security-badge">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
@@ -563,24 +206,20 @@
         </div>
         <p>Your card will <strong>not be charged now</strong>. We only save your card details. It will only be charged if you don't complete your goal by the deadline.</p>
       </div>
-      
       <button id="payBtn" disabled>Save Card</button>
-      
-      <!-- Stripe branding for additional trust -->
       <div class="powered-by-stripe">
         <span>Powered by</span>
         <img src="https://motivationguaranteed.com/assets/images/image34.png?v=44163664" alt="Stripe" />
       </div>
-      
       <div class="buttons">
         <button class="back-arrow" id="back-6">← Back</button>
       </div>
     </div>
-
   </div>
 
   <script>
     (async () => {
+      // Setup
       const res = await fetch('/.netlify/functions/get-publishable-key');
       if (!res.ok) return console.error('Could not load publishable key');
       const { publishableKey } = await res.json();
@@ -588,48 +227,33 @@
 
       // Modal functionality
       const modal = document.getElementById('refereeModal');
-      
-      // Open modal
       document.getElementById('needRefereeBtn').addEventListener('click', function() {
-        modal.style.display = 'flex';
+        modal.style.display = 'block';
       });
-      
-      // Close modal
       window.closeModal = function() {
         modal.style.display = 'none';
       };
-      
-      // Use team referee
       window.useTeamReferee = function() {
         document.getElementById('refereeEmail').value = 'teammotivationguaranteed@gmail.com';
-        modal.style.display = 'none';
+        closeModal();
       };
-      
-      // Close when clicking outside
-      window.addEventListener('click', function(event) {
-        if (event.target == modal) {
-          closeModal();
-        }
-      });
 
-      // Set min date for date picker (today) and max date (today + 90 days)
+      // Date picker setup
       const dateInput = document.getElementById('deadline');
       if (dateInput) {
         const today = new Date();
         const maxDate = new Date();
         maxDate.setDate(today.getDate() + 90);
         
-        const formatDate = (date) => {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
+        const formatDate = date => {
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         };
         
         dateInput.min = formatDate(today);
         dateInput.max = formatDate(maxDate);
       }
 
+      // Navigation
       function showStep(n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById(`step-${n}`).classList.add('active');
@@ -642,6 +266,7 @@
         if (!val) { err.style.display = 'block'; return false; }
         err.style.display = 'none'; return true;
       }
+      
       function validateDeadline() {
         const el = document.getElementById('deadline');
         const err = document.getElementById('deadline-error');
@@ -652,6 +277,7 @@
         if (date < now || date > max) { err.style.display = 'block'; return false; }
         err.style.display = 'none'; return true;
       }
+      
       function validateStake() {
         const sel = document.getElementById('stake');
         const custom = document.getElementById('stake-custom').value;
@@ -659,6 +285,7 @@
         if (sel.value === 'custom' && (!custom || custom <= 0)) { err.style.display = 'block'; return false; }
         err.style.display = 'none'; return true;
       }
+      
       function validateEmail(id) {
         const val = document.getElementById(id).value.trim();
         const err = document.getElementById(id === 'userEmail' ? 'email-error': 'referee-error');
@@ -666,24 +293,29 @@
         if (!re.test(val)) { err.style.display = 'block'; return false; }
         err.style.display = 'none'; return true;
       }
-      function validateTerms() {
-        return true; // Terms removed as requested
-      }
+      
       function validateCardName() {
         const val = document.getElementById('cardName').value.trim();
         const err = document.getElementById('cardname-error');
         if (!val) { err.style.display = 'block'; return false; }
         err.style.display = 'none'; return true;
       }
+      
       function validateZip() {
         const val = document.getElementById('zip').value.trim();
         const err = document.getElementById('zip-error');
         if (!val) { err.style.display = 'block'; return false; }
         err.style.display = 'none'; return true;
       }
-      function enterKey(e, fn) { if (e.key === 'Enter') { e.preventDefault(); fn(); }}
+      
+      function enterKey(e, fn) { 
+        if (e.key === 'Enter') { 
+          e.preventDefault(); 
+          fn(); 
+        }
+      }
 
-      // Navigation
+      // Event listeners for each step
       document.getElementById('next-1').onclick = () => validateGoal() && showStep(2);
       document.getElementById('goal').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-1').click()));
 
@@ -701,13 +333,13 @@
       document.getElementById('refereeEmail').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-4').click()));
       document.getElementById('back-4').onclick = () => showStep(3);
 
-      document.getElementById('next-5').onclick = () => validateEmail('userEmail') && validateTerms() && showStep(6);
+      document.getElementById('next-5').onclick = () => validateEmail('userEmail') && showStep(6);
       document.getElementById('userEmail').addEventListener('keypress', e => enterKey(e, () => document.getElementById('next-5').click()));
       document.getElementById('back-5').onclick = () => showStep(4);
 
       document.getElementById('back-6').onclick = () => showStep(5);
 
-      // Stripe card
+      // Stripe card setup
       const elements = stripe.elements();
       const card = elements.create('card', { 
         hidePostalCode: true,
@@ -716,48 +348,73 @@
             fontFamily: "'Inter', sans-serif",
             fontSize: '16px',
             color: '#424770',
-            '::placeholder': {
-              color: '#9BACC8',
-            },
+            '::placeholder': { color: '#9BACC8' }
           },
-          invalid: {
-            color: '#E53E3E',
-          }
+          invalid: { color: '#E53E3E' }
         }
       });
+      
       card.mount('#card-element');
       const payBtn = document.getElementById('payBtn');
-      card.on('change', e => { document.getElementById('card-errors').textContent = e.error?.message||''; payBtn.disabled = !e.complete; });
+      card.on('change', e => { 
+        document.getElementById('card-errors').textContent = e.error?.message || ''; 
+        payBtn.disabled = !e.complete; 
+      });
 
-      const ORIGIN = location.origin.includes('netlify.app')?location.origin:'https://stately-sundae-b61659.netlify.app';
-      async function createSetupIntent(payload) { return fetch(`${ORIGIN}/.netlify/functions/create-setup-intent`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }
-      async function writeToAirtable(payload) { return fetch(`${ORIGIN}/.netlify/functions/submit-goal`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); }
+      // API functions
+      const ORIGIN = location.origin.includes('netlify.app') ? location.origin : 'https://stately-sundae-b61659.netlify.app';
+      const createSetupIntent = payload => fetch(`${ORIGIN}/.netlify/functions/create-setup-intent`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      
+      const writeToAirtable = payload => fetch(`${ORIGIN}/.netlify/functions/submit-goal`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
 
+      // Payment submission
       payBtn.onclick = async () => {
-        if (!validateCardName()||!validateZip()) return;
-        const data={
-          goal:document.getElementById('goal').value,
-          deadline:document.getElementById('deadline').value,
-          stake:stakeSel.value==='custom'?document.getElementById('stake-custom').value:stakeSel.value,
-          supervisorEmail:document.getElementById('refereeEmail').value,
-          refereeName:document.getElementById('refereeEmail').value.split('@')[0],
-          email:document.getElementById('userEmail').value,
-          name:document.getElementById('userEmail').value.split('@')[0],
-          termsChecked: true, // Always true since we removed the checkbox
-          cardName:document.getElementById('cardName').value,
-          zip:document.getElementById('zip').value
+        if (!validateCardName() || !validateZip()) return;
+        
+        const data = {
+          goal: document.getElementById('goal').value,
+          deadline: document.getElementById('deadline').value,
+          stake: stakeSel.value === 'custom' ? document.getElementById('stake-custom').value : stakeSel.value,
+          supervisorEmail: document.getElementById('refereeEmail').value,
+          refereeName: document.getElementById('refereeEmail').value.split('@')[0],
+          email: document.getElementById('userEmail').value,
+          name: document.getElementById('userEmail').value.split('@')[0],
+          termsChecked: true,
+          cardName: document.getElementById('cardName').value,
+          zip: document.getElementById('zip').value
         };
-        payBtn.disabled=true;
+        
+        payBtn.disabled = true;
+        
         try {
-          const siRes=await createSetupIntent(data);
+          const siRes = await createSetupIntent(data);
           if (!siRes.ok) throw new Error(await siRes.text());
-          const {clientSecret,customerId}=await siRes.json();
-          const {error}=await stripe.confirmCardSetup(clientSecret,{payment_method:{card,billing_details:{name:data.cardName,address:{postal_code:data.zip}}}});
-          if(error) throw error;
-          const arRes=await writeToAirtable({...data,paymentStatus:'Card on file (test)',customerId});
-          if(!arRes.ok) throw new Error(await arRes.text());
           
-          // Use top-level redirection to break out of iframe if needed
+          const {clientSecret, customerId} = await siRes.json();
+          const {error} = await stripe.confirmCardSetup(clientSecret, {
+            payment_method: {
+              card,
+              billing_details: {
+                name: data.cardName, 
+                address: {postal_code: data.zip}
+              }
+            }
+          });
+          
+          if (error) throw error;
+          
+          const arRes = await writeToAirtable({...data, paymentStatus: 'Card on file (test)', customerId});
+          if (!arRes.ok) throw new Error(await arRes.text());
+          
+          // Redirect handling
           try {
             if (window !== window.top) {
               window.top.location.href = 'https://motivationguaranteed.com/#success';
@@ -765,10 +422,13 @@
               window.location.href = 'https://motivationguaranteed.com/#success';
             }
           } catch (e) {
-            // If we can't access top due to security, just redirect current window
             window.location.href = 'https://motivationguaranteed.com/#success';
           }
-        }catch(err){console.error(err);payBtn.disabled=false;alert(`Error: ${err.message}`);}
+        } catch (err) {
+          console.error(err);
+          payBtn.disabled = false;
+          alert(`Error: ${err.message}`);
+        }
       };
     })();
   </script>

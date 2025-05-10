@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Goal Wizard</title>
+  
+  <!-- Google Analytics tracking code -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-86GWFDH23R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-86GWFDH23R');
+  </script>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -239,6 +249,8 @@
           'form_name': 'goal_wizard'
         });
         console.log('Tracked: goal_wizard_start');
+      } else {
+        console.error('Google Analytics not available (gtag undefined)');
       }
       
       // Setup
@@ -443,7 +455,6 @@
       });
 
       // Payment submission
-      const originalPayBtnClick = payBtn.onclick;
       payBtn.onclick = async () => {
         if (!validateCardName() || !validateZip()) return;
         
@@ -508,6 +519,8 @@
               'is_team_referee': refereeEmail === 'teammotivationguaranteed@gmail.com'
             });
             console.log('Tracked: goal_wizard_complete');
+          } else {
+            console.error('Google Analytics not available for completion tracking');
           }
           
           // Redirect handling

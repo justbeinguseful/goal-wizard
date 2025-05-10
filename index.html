@@ -134,14 +134,75 @@
       margin: -0.5em 0 1em;
       line-height: 1.4;
     }
-    .info-text a {
+    .info-text a, .info-text button {
+      display: block;
       color: #3182CE;
       text-decoration: none;
       font-weight: 500;
+      background: none;
+      border: none;
+      padding: 0;
+      margin-top: 0.1em;
+      cursor: pointer;
+      font-size: 0.8rem;
+      box-shadow: none;
     }
-    .info-text a:hover {
+    .info-text a:hover, .info-text button:hover {
       color: #2C5282;
       text-decoration: underline;
+      background: none;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    /* Modal styling */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .modal-title {
+      font-weight: 600;
+      font-size: 1.1em;
+      margin-bottom: 0.5em;
+      text-align: center;
+    }
+    .modal-text {
+      font-size: 0.9em;
+      margin-bottom: 1em;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+    }
+    .modal-button {
+      flex: 1;
+      margin: 0 5px;
+      padding: 0.6em;
+      font-size: 0.9em !important;
+      background: #E60303;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .modal-button.cancel {
+      background: #CBD5E0;
+      color: #4A5568;
     }
     
     /* Checkbox styling */
@@ -342,6 +403,18 @@
   </style>
 </head>
 <body>
+  <!-- Referee Modal -->
+  <div id="refereeModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Need a referee?</div>
+      <div class="modal-text">We can be your referee for $10. Just enter <strong>teammotivationguaranteed@gmail.com</strong> in the email field.</div>
+      <div class="modal-actions">
+        <button class="modal-button cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-button" onclick="useTeamReferee()">Use Team</button>
+      </div>
+    </div>
+  </div>
+
   <div id="wizard">
 
     <!-- Step 1: Goal -->
@@ -404,7 +477,8 @@
       </div>
       
       <div class="info-text">
-        Adding a financial stake increases success by 500% <a href="https://motivationguaranteed.com/#report" target="_blank">See report</a>
+        Adding a financial stake increases success by 500%
+        <a href="https://motivationguaranteed.com/#report" target="_blank">See report</a>
       </div>
       
       <div id="stake-error" class="error-message">Please enter a valid amount</div>
@@ -427,6 +501,11 @@
         <button id="next-4">Set Referee</button>
       </div>
       
+      <div class="info-text">
+        Adding a referee increases success by 500%
+        <button id="needRefereeBtn">Need a referee?</button>
+      </div>
+      
       <div id="referee-error" class="error-message">Please enter a valid email address</div>
       
       <div class="buttons">
@@ -442,16 +521,14 @@
       
       <h2>How do we contact you?</h2>
       
-      <input id="userEmail" placeholder="Your email" type="email" />
+      <div class="input-group">
+        <input id="userEmail" placeholder="Your email" type="email" />
+        <button id="next-5">Continue</button>
+      </div>
+      
       <div id="email-error" class="error-message">Please enter a valid email address</div>
       
-      <div class="checkbox-field">
-        <input id="terms" type="checkbox" />
-        <label for="terms">I accept the <a href="https://motivationguaranteed.com/#termsandconditions" target="_blank">Terms & Conditions</a></label>
-      </div>
       <div id="terms-error" class="error-message">You must accept the Terms & Conditions</div>
-      
-      <button id="next-5">Continue</button>
       
       <div class="buttons">
         <button class="back-arrow" id="back-5">← Back</button>
@@ -509,6 +586,32 @@
       const { publishableKey } = await res.json();
       const stripe = Stripe(publishableKey);
 
+      // Modal functionality
+      const modal = document.getElementById('refereeModal');
+      
+      // Open modal
+      document.getElementById('needRefereeBtn').addEventListener('click', function() {
+        modal.style.display = 'flex';
+      });
+      
+      // Close modal
+      window.closeModal = function() {
+        modal.style.display = 'none';
+      };
+      
+      // Use team referee
+      window.useTeamReferee = function() {
+        document.getElementById('refereeEmail').value = 'teammotivationguaranteed@gmail.com';
+        modal.style.display = 'none';
+      };
+      
+      // Close when clicking outside
+      window.addEventListener('click', function(event) {
+        if (event.target == modal) {
+          closeModal();
+        }
+      });
+
       // Set min date for date picker (today) and max date (today + 90 days)
       const dateInput = document.getElementById('deadline');
       if (dateInput) {
@@ -564,10 +667,7 @@
         err.style.display = 'none'; return true;
       }
       function validateTerms() {
-        const chk = document.getElementById('terms').checked;
-        const err = document.getElementById('terms-error');
-        if (!chk) { err.style.display = 'block'; return false; }
-        err.style.display = 'none'; return true;
+        return true; // Terms removed as requested
       }
       function validateCardName() {
         const val = document.getElementById('cardName').value.trim();
@@ -643,7 +743,7 @@
           refereeName:document.getElementById('refereeEmail').value.split('@')[0],
           email:document.getElementById('userEmail').value,
           name:document.getElementById('userEmail').value.split('@')[0],
-          termsChecked:document.getElementById('terms').checked,
+          termsChecked: true, // Always true since we removed the checkbox
           cardName:document.getElementById('cardName').value,
           zip:document.getElementById('zip').value
         };

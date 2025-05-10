@@ -43,6 +43,7 @@
       text-align: center; 
       font-weight: 600;
       color: #1A202C;
+      line-height: 1.2; /* Reduced line height for titles */
     }
     
     /* Progress bar */
@@ -147,7 +148,6 @@
     .checkbox-field { 
       display: flex; 
       align-items: center; 
-      justify-content: center; 
       margin-bottom: 1em; 
       padding: 0.5em;
     }
@@ -158,6 +158,8 @@
     .checkbox-field input { 
       width: auto; 
       margin: 0; 
+      min-width: 18px;
+      height: 18px;
     }
     .checkbox-field label { 
       margin-left: 0.5em; 
@@ -418,7 +420,7 @@
         <div class="progress-bar-inner" style="width: 66.67%;"></div>
       </div>
       
-      <h2>Who checks if you complete it?</h2>
+      <h2>Who checks if you complete your goal?</h2>
       
       <div class="input-group">
         <input id="refereeEmail" placeholder="Referee's email" type="email" />
@@ -440,11 +442,7 @@
       
       <h2>How do we contact you?</h2>
       
-      <div class="input-group">
-        <input id="userEmail" placeholder="Your email" type="email" />
-        <button id="next-5">Continue</button>
-      </div>
-      
+      <input id="userEmail" placeholder="Your email" type="email" />
       <div id="email-error" class="error-message">Please enter a valid email address</div>
       
       <div class="checkbox-field">
@@ -452,6 +450,8 @@
         <label for="terms">I accept the <a href="https://motivationguaranteed.com/#termsandconditions" target="_blank">Terms & Conditions</a></label>
       </div>
       <div id="terms-error" class="error-message">You must accept the Terms & Conditions</div>
+      
+      <button id="next-5">Continue</button>
       
       <div class="buttons">
         <button class="back-arrow" id="back-5">← Back</button>
@@ -484,7 +484,7 @@
           </svg>
           <span>Secure payment via Stripe</span>
         </div>
-        <p>Your card will <strong>not be charged now</strong>. We only save your card details and will only charge if you don't complete your goal by the deadline.</p>
+        <p>Your card will <strong>not be charged now</strong>. We only save your card details. It will only be charged if you don't complete your goal by the deadline.</p>
       </div>
       
       <button id="payBtn" disabled>Save Card</button>
@@ -657,7 +657,17 @@
           const arRes=await writeToAirtable({...data,paymentStatus:'Card on file (test)',customerId});
           if(!arRes.ok) throw new Error(await arRes.text());
           
-          window.location.href = 'https://motivationguaranteed.com/#success';
+          // Use top-level redirection to break out of iframe if needed
+          try {
+            if (window !== window.top) {
+              window.top.location.href = 'https://motivationguaranteed.com/#success';
+            } else {
+              window.location.href = 'https://motivationguaranteed.com/#success';
+            }
+          } catch (e) {
+            // If we can't access top due to security, just redirect current window
+            window.location.href = 'https://motivationguaranteed.com/#success';
+          }
         }catch(err){console.error(err);payBtn.disabled=false;alert(`Error: ${err.message}`);}
       };
     })();

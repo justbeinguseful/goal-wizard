@@ -73,6 +73,24 @@
       transition: all 0.2s;
     }
     
+    /* Fix for date input on mobile */
+    input[type="date"] {
+      -webkit-appearance: none;
+      appearance: none;
+      position: relative;
+      background: #fff;
+    }
+    
+    /* Show date picker icon for all browsers */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      opacity: 0.6;
+    }
+    
     input:focus, select:focus {
       outline: none;
       border-color: #CBD5E0;
@@ -85,7 +103,7 @@
     
     /* For Step 3 stake layout fix */
     .stake-container {
-      margin-bottom: 1em;
+      margin-bottom: 0.5em;
     }
     #stake-custom {
       display: none;
@@ -107,6 +125,24 @@
       border-radius: 0 0 6px 6px;
     }
     
+    /* Small info text */
+    .info-text {
+      font-size: 0.8rem;
+      color: #718096;
+      text-align: center;
+      margin: -0.5em 0 1em;
+      line-height: 1.4;
+    }
+    .info-text a {
+      color: #3182CE;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .info-text a:hover {
+      color: #2C5282;
+      text-decoration: underline;
+    }
+    
     /* Checkbox styling */
     .checkbox-field { 
       display: flex; 
@@ -122,13 +158,20 @@
     .checkbox-field input { 
       width: auto; 
       margin: 0; 
-      transform: scale(1.2);
     }
     .checkbox-field label { 
       margin-left: 0.5em; 
       font-size: 0.9em; 
       text-align: left; 
       color: #4A5568;
+    }
+    .checkbox-field label a {
+      color: #3182CE;
+      text-decoration: none;
+    }
+    .checkbox-field label a:hover {
+      color: #2C5282;
+      text-decoration: underline;
     }
     
     /* Buttons container */
@@ -236,6 +279,11 @@
       color: #38A169; /* Green color for the lock icon */
       margin-right: 0.5em;
     }
+    
+    .security-badge img {
+      height: 20px;
+      margin-right: 0.5em;
+    }
 
     .security-badge span {
       font-weight: 600;
@@ -263,6 +311,10 @@
       color: #718096;
       font-size: 0.75rem;
       margin-right: 0.5em;
+    }
+    
+    .powered-by-stripe img {
+      height: 25px;
     }
     
     /* Save Card button styling */
@@ -349,6 +401,10 @@
         <button id="next-3">Set Stake</button>
       </div>
       
+      <div class="info-text">
+        Adding a financial stake increases success by 500% <a href="https://motivationguaranteed.com/#report" target="_blank">See report</a>
+      </div>
+      
       <div id="stake-error" class="error-message">Please enter a valid amount</div>
       
       <div class="buttons">
@@ -393,7 +449,7 @@
       
       <div class="checkbox-field">
         <input id="terms" type="checkbox" />
-        <label for="terms">I accept the Terms & Conditions</label>
+        <label for="terms">I accept the <a href="https://motivationguaranteed.com/#termsandconditions" target="_blank">Terms & Conditions</a></label>
       </div>
       <div id="terms-error" class="error-message">You must accept the Terms & Conditions</div>
       
@@ -436,9 +492,7 @@
       <!-- Stripe branding for additional trust -->
       <div class="powered-by-stripe">
         <span>Powered by</span>
-        <svg width="60" height="25" viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M59.64 14.28C59.64 10.09 57.74 6.77 54.13 6.77C50.5 6.77 48.24 10.09 48.24 14.26C48.24 19.1 50.81 21.75 54.73 21.75C56.77 21.75 58.19 21.18 59.21 20.34V17.72C58.19 18.45 56.98 18.87 55.53 18.87C53.89 18.87 52.47 18.18 52.32 16.35H59.61C59.61 16.07 59.64 14.86 59.64 14.28ZM52.28 13.72C52.28 11.81 53.29 9.98 54.13 9.98C54.94 9.98 55.9 11.81 55.9 13.72H52.28ZM42.24 6.77C40.86 6.77 39.93 7.41 39.28 7.97L39.1 7.05H35.8V25H39.5V19.6L39.68 19.08C40.27 19.53 41.05 19.95 42.19 19.95C45.05 19.95 47.45 17.32 47.45 13.21C47.45 9.3 44.99 6.77 42.24 6.77ZM41.29 16.59C40.39 16.59 39.83 16.29 39.5 15.89V10.37C39.85 9.92 40.44 9.65 41.29 9.65C42.73 9.65 43.8 11.28 43.8 13.1C43.8 14.96 42.73 16.59 41.29 16.59ZM30.89 3.14L27.16 3.9L27.14 16.14C27.14 19.16 29.04 21.73 32.36 21.73C33.84 21.73 34.96 21.43 35.63 21.05V18.07C34.99 18.33 32.68 19 32.68 16.42V10.1H35.63V7.05H32.68L32.7 3.14H30.89ZM20.21 7.05L20.39 8.07C21.03 7.07 22.23 6.72 23.46 6.72C24.63 6.72 25.7 7.11 26.34 8.07C27.2 7.04 28.57 6.72 29.85 6.72C32.33 6.72 33.97 8.25 33.97 11.36V21.53H30.24V11.96C30.24 10.39 29.38 10.1 28.55 10.1C27.51 10.1 26.93 10.67 26.93 11.96V21.53H23.56V11.96C23.56 10.39 22.7 10.1 21.9 10.1C20.8 10.1 20.24 10.67 20.24 11.96V21.53H16.5V7.05H20.21ZM11.77 13.8V21.53H8.01V7.05H11.29L11.47 8.17C12.2 7.09 13.5 6.72 14.71 6.72C17.16 6.72 18.6 8.25 18.6 11.36V21.53H14.87V11.96C14.87 10.39 14.04 10.1 13.09 10.1C12.1 10.1 11.77 10.8 11.77 13.8Z" fill="#635BFF"/>
-        </svg>
+        <img src="https://motivationguaranteed.com/assets/images/image34.png?v=44163664" alt="Stripe" />
       </div>
       
       <div class="buttons">
@@ -454,6 +508,24 @@
       if (!res.ok) return console.error('Could not load publishable key');
       const { publishableKey } = await res.json();
       const stripe = Stripe(publishableKey);
+
+      // Set min date for date picker (today) and max date (today + 90 days)
+      const dateInput = document.getElementById('deadline');
+      if (dateInput) {
+        const today = new Date();
+        const maxDate = new Date();
+        maxDate.setDate(today.getDate() + 90);
+        
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+        
+        dateInput.min = formatDate(today);
+        dateInput.max = formatDate(maxDate);
+      }
 
       function showStep(n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
